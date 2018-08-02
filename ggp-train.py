@@ -11,6 +11,7 @@ import random
 import psutil
 import os
 import pickle
+import operator
 
 
 """
@@ -75,9 +76,10 @@ def runAgent(args):
         print('Agent #' + str(agent.getAgentNum()) + 
               ' | Ep #' + str(ep) + ' | Score: ' + str(scoreEp))
         scoreTotal += scoreEp
-        
+       
+    scoreTotal /= numEpisodes
     env.close()
-    agent.reward(scoreTotal, envName+'-'+str(numEpisodes)+'-'+str(numFrames))
+    agent.reward(scoreTotal, envName+'-'+str(numFrames))
     scoreList.append((agent.getUid(), agent.getOutcomes()))
     
 # https://stackoverflow.com/questions/42103367/limit-total-cpu-usage-in-python-multiprocessing/42130713
@@ -86,14 +88,41 @@ def limit_cpu():
     p.nice(10)
     
 # all of the titles we will be general game playing on
-gymEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
+# we chose games that we know TPG does OK in alone
+envNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'BattleZone-v0','Bowling-v0','Boxing-v0','Centipede-v0',
                'ChopperCommand-v0','DoubleDunk-v0','FishingDerby-v0',
                'Freeway-v0','Frostbite-v0','Gravitar-v0','Hero-v0',
                'IceHockey-v0','Jamesbond-v0','Kangaroo-v0','Krull-v0',
                'KungFuMaster-v0','MsPacman-v0','PrivateEye-v0',
-               'RoadRunner-v0','Skiing-v0','Tennis-v0','TimePilot-v0',
+               'RoadRunner-v0','Tennis-v0','TimePilot-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
+
+# Kelly, S., & Heywood, M. I. (2018). 
+# Emergent Solutions to High-Dimensional Multi-Task Reinforcement Learning. 
+# Evolutionary Computation, 26(1), 1–33. 
+# https://doi.org/10.1162/evco_a_00232
+# scores that tpg achieved running just the game on its own, not ggp
+# tennis changed to 1 from 0
+soloTpgScores = 
+    {'Alien-v0': 3382.7,'Asteroids-v0': 3050.7,'Atlantis-v0': 89653,'BankHeist-v0': 1051,
+     'BattleZone-v0': 47233.4,'Bowling-v0': 223.7,'Boxing-v0': 76.5,'Centipede-v0': 34731.7,
+     'ChopperCommand-v0': 7070,'DoubleDunk-v0': 2,'FishingDerby-v0': 49,
+     'Freeway-v0': 28.9,'Frostbite-v0': 8144.4,'Gravitar-v0': 786.7,'Hero-v0': 16545.4,
+     'IceHockey-v0': 10,'Jamesbond-v0': 3120,'Kangaroo-v0': 14780,'Krull-v0': 12850.4,
+     'KungFuMaster-v0': 43353.4,'MsPacman-v0': 5156,'PrivateEye-v0': 15028.3,
+     'RoadRunner-v0': 17410,'Tennis-v0': 1,'TimePilot-v0': 13540,
+     'UpNDown-v0': 34416,'Venture-v0': 576.7,'WizardOfWor-v0': 5196.7,'Zaxxon-v0': 6233.4}
+
+envFitnesses = 
+    {'Alien-v0': 0,'Asteroids-v0': 0,'Atlantis-v0': 0,'BankHeist-v0': 0,
+    'BattleZone-v0': 0,'Bowling-v0': 0,'Boxing-v0': 0,'Centipede-v0': 0,
+    'ChopperCommand-v0': 0,'DoubleDunk-v0': 0,'FishingDerby-v0': 0,
+    'Freeway-v0': 0,'Frostbite-v0': 0,'Gravitar-v0': 0,'Hero-v0': 0,
+    'IceHockey-v0': 0,'Jamesbond-v0': 0,'Kangaroo-v0': 0,'Krull-v0': 0,
+    'KungFuMaster-v0': 0,'MsPacman-v0': 0,'PrivateEye-v0': 0,
+    'RoadRunner-v0': 0,'Tennis-v0': 0,'TimePilot-v0': 0,
+    'UpNDown-v0': 0,'Venture-v0': 0,'WizardOfWor-v0': 0,'Zaxxon-v0': 0}
 
 
 trainer = TpgTrainer(actions=range(18), teamPopSizeInit=360)
@@ -103,7 +132,8 @@ pool = mp.Pool(processes=processes, initializer=limit_cpu)
 man = mp.Manager()
 
 curEnvNames = []
-numActiveEnvs = 10
+curEnvNamesCp = [] # copy of curEnvNames
+numActiveEnvs = 29 #start with all games
 
 numEpisodes = 0 # repeat evaluations to deal with randomness
 numFrames = 250 # number of frames per episode, to increase as time goes on
@@ -112,41 +142,67 @@ allScores = [] # track all scores each generation
 
 tStart = time.time()
 
+curGen = 0 # generation of tpg
+curCycle = 0 # times gone through all current games
+cycleSwitch = 100 # switch to play all games in single eval
+
 while True: # do generations with no end
     scoreList = man.list()
     
     # reload curGames if needed
     if len(curEnvNames) == 0:
-        curEnvNames = list(gymEnvNames)
-        random.shuffle(curEnvNames)
-        curEnvNames = curEnvNames[:numActiveEnvs]
-        # gradually increase the number of episodes and frames
+        curCycle += 1
+        sortedEnvFits = sorted(envFitnesses.items(), key=operator.itemgetter(1), reverse=True)
+        curEnvNames = [envFit[0] for envFit in sortedEnvFits[:numActiveEnvs]]
+        random.shuffle(curEnvNames) # not sure if this necessary
+        curEnvNamesCp = list(curEnvNames)
+        # gradually increase the number of episodes and frames, and decrease active games
         if numEpisodes < 5:
-            numEpisodes += 1
-            numFrames += 150
+            numEpisodes += 1 # up to 5
+            numFrames += 150 # up to 1000
+            numActiveEnvs -= 4 # down to 9
         
     curEnvName = curEnvNames.pop() # get env to play on this generation
     
+    if curCycle < cycleSwitch or len(curEnvNames) == len(curEnvNamesCp):
+        agents = trainer.getAllAgents(skipTasks=[]) # swap out agents only at start of generation
     pool.map(runAgent, 
         [(agent, curEnvName, scoreList, numEpisodes, numFrames)
-        for agent in trainer.getAllAgents(skipTasks=[])])
+        for agent in agents])
     
     # apply scores
     trainer.applyScores(scoreList)
-    scoreStats = trainer.generateScoreStats(tasks=[curEnvName+'-'+str(numEpisodes)+'-'+str(numFrames)])
-    allScores.append((curEnvName, scoreStats['min'], scoreStats['max'], scoreStats['average']))
 
-    trainer.evolve(tasks=[curEnvName+'-'+str(numEpisodes)+'-'+str(numFrames)]) # go into next gen
-    
-    # save model after every gen
-    with open('saved-model-1.pkl','wb') as f:
-        pickle.dump(trainer,f)
+    if curCycle < cycleSwitch or len(curEnvNames) == 0: # time to evolve
+        curGen += 1
+        if curCycle < cycleSwitch: # regular evolution, after each individual game
+            tasks = [curEnvName+'-'+str(numFrames)]
+            envsName = curEnvName
+        elif len(curEnvNames) == 0: # more advanced, after play all games
+            tasks = [envName+'-'+str(numFrames) for envName in curEnvNamesCp]
+            envsName = ','.join(curEnvNamesCp)
         
-    print(chr(27) + "[2J")
-    print('Time Taken (Seconds): ' + str(time.time() - tStart))
-    print('On Generation: ' + str(trainer.curGen))
-    print('Results: ', str(allScores))
+        scoreStats = trainer.generateScoreStats(tasks=tasks)
+        allScores.append((envsName, scoreStats['min'], scoreStats['max'], scoreStats['average']))
 
+        # apply fitness of just played env
+        if curCycle < cycleSwitch:
+            envFitnesses[curEnvName] = (-scoreStats['average']/soloTpgScores[curEnvName]) + 1
+        elif len(curEnvNames) == 0:
+            for env in curEnvNamesCp:
+                scoreStats = trainer.generateScoreStats(tasks=[env+'-'+str(numFrames)])
+                envFitnesses[env] = (-scoreStats['average']/soloTpgScores[env]) + 1
 
+        trainer.evolve(tasks=tasks) # go into next gen
 
+        # save model after every gen
+        with open('saved-model-1.pkl','wb') as f:
+            pickle.dump(trainer,f)
+    
+        print(chr(27) + "[2J")
+        print('Time Taken (Seconds): ' + str(time.time() - tStart))
+        print('On Generation: ' + str(curGen))
+        print('On Cycle: ' + str(curCycle))
+        print('Results: ', str(allScores))
+            
 
