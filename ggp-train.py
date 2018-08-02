@@ -179,11 +179,14 @@ while True: # do generations with no end
     trainer.applyScores(scoreList)
 
     if curCycle < cycleSwitch or len(curEnvNames) == 0: # time to evolve
+        print(chr(27) + "[2J")
         curGen += 1
         if curCycle < cycleSwitch: # regular evolution, after each individual game
+            print('In to new gen!')
             tasks = [curEnvName+'-'+str(numFrames)]
             envsName = curEnvName
         elif len(curEnvNames) == 0: # more advanced, after play all games
+            print('In to new cycle!')
             tasks = [envName+'-'+str(numFrames) for envName in curEnvNamesCp]
             envsName = ','.join(curEnvNamesCp)
         
@@ -204,7 +207,6 @@ while True: # do generations with no end
         with open('saved-model-1.pkl','wb') as f:
             pickle.dump(trainer,f)
     
-        print(chr(27) + "[2J")
         print('Time Taken (Seconds): ' + str(time.time() - tStart))
         print('On Generation: ' + str(curGen))
         print('On Cycle: ' + str(curCycle))
@@ -216,7 +218,24 @@ while True: # do generations with no end
                 + str(scoreStats['min']) + ' | ' 
                 + str(scoreStats['max']) + ' | '
                 + str(scoreStats['average']) + '\n')
-    elif curCycle % 10 == 0: # evaluate env fitnesses, incase haven't visited in a while
-        
-            
+    
+    if curCycle % 10 == 0: # evaluate env fitnesses, incase haven't visited in a while
+        print('In to evaluation of fitnesses of envs!')
+        for envName in envNames:
+            scoreList = man.list()
+            pool.map(runAgent, 
+                [(agent, envName, scoreList, numEpisodes, numFrames)
+                for agent in agents])
+            trainer.applyScores(scoreList)
+            scoreStats = trainer.generateScoreStats(tasks=[envName+'-'+str(numFrames)])
+            envFitnesses[envName] = (-scoreStats['average']/soloTpgScores[envName]) + 1
+            print('Env ' + envName + ' with fitness ' + envFitnesses[envName])
+
+
+
+
+
+
+
+
 
