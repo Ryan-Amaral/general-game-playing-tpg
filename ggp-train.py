@@ -126,7 +126,7 @@ envFitnesses = {
     'UpNDown-v0': 0,'Venture-v0': 0,'WizardOfWor-v0': 0,'Zaxxon-v0': 0}
 
 
-trainer = TpgTrainer(actions=range(18), teamPopSizeInit=360)
+trainer = TpgTrainer(actions=range(18), teamPopSizeInit=150)
 
 processes = 2
 pool = mp.Pool(processes=processes, initializer=limit_cpu)
@@ -134,10 +134,10 @@ man = mp.Manager()
 
 curEnvNames = []
 curEnvNamesCp = [] # copy of curEnvNames
-numActiveEnvs = 29 #start with all games
+numActiveEnvs = len(envNames) # start with all games
 
-numEpisodes = 0 # repeat evaluations to deal with randomness
-numFrames = 250 # number of frames per episode, to increase as time goes on
+numEpisodes = 1#0 # repeat evaluations to deal with randomness
+numFrames = 20#250 # number of frames per episode, to increase as time goes on
 
 allScores = [] # track all scores each generation
 
@@ -145,10 +145,10 @@ tStart = time.time()
 
 curGen = 0 # generation of tpg
 curCycle = 0 # times gone through all current games
-cycleSwitch = 100 # switch to play all games in single eval
+cycleSwitch = 15#100 # switch to play all games in single eval
 
 logFileName = 'ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
-
+tmp = 0
 while True: # do generations with no end
     scoreList = man.list()
     
@@ -160,9 +160,11 @@ while True: # do generations with no end
         random.shuffle(curEnvNames) # not sure if this necessary
         curEnvNamesCp = list(curEnvNames)
         # gradually increase the number of episodes and frames, and decrease active games
-        if numEpisodes < 5:
-            numEpisodes += 1 # up to 5
-            numFrames += 150 # up to 1000
+        #if numEpisodes < 5:
+        if tmp < 5:
+            tmp += 1
+            #numEpisodes += 1 # up to 5
+            #numFrames += 150 # up to 1000
             numActiveEnvs -= 4 # down to 9
         
     curEnvName = curEnvNames.pop() # get env to play on this generation
@@ -213,7 +215,7 @@ while True: # do generations with no end
         print('Results: ', str(allScores))
 
         with open(logFileName, 'a') as f:
-            f.write(str(curGen) + ': ' 
+            f.write(str(curGen) + ' | ' 
                 + str(envsName) + ' | ' 
                 + str(scoreStats['min']) + ' | ' 
                 + str(scoreStats['max']) + ' | '
