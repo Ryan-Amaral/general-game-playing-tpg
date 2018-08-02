@@ -12,6 +12,7 @@ import psutil
 import os
 import pickle
 import operator
+import datetime
 
 
 """
@@ -104,8 +105,8 @@ envNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
 # https://doi.org/10.1162/evco_a_00232
 # scores that tpg achieved running just the game on its own, not ggp
 # tennis changed to 1 from 0
-soloTpgScores = 
-    {'Alien-v0': 3382.7,'Asteroids-v0': 3050.7,'Atlantis-v0': 89653,'BankHeist-v0': 1051,
+soloTpgScores = {
+     'Alien-v0': 3382.7,'Asteroids-v0': 3050.7,'Atlantis-v0': 89653,'BankHeist-v0': 1051,
      'BattleZone-v0': 47233.4,'Bowling-v0': 223.7,'Boxing-v0': 76.5,'Centipede-v0': 34731.7,
      'ChopperCommand-v0': 7070,'DoubleDunk-v0': 2,'FishingDerby-v0': 49,
      'Freeway-v0': 28.9,'Frostbite-v0': 8144.4,'Gravitar-v0': 786.7,'Hero-v0': 16545.4,
@@ -114,8 +115,8 @@ soloTpgScores =
      'RoadRunner-v0': 17410,'Tennis-v0': 1,'TimePilot-v0': 13540,
      'UpNDown-v0': 34416,'Venture-v0': 576.7,'WizardOfWor-v0': 5196.7,'Zaxxon-v0': 6233.4}
 
-envFitnesses = 
-    {'Alien-v0': 0,'Asteroids-v0': 0,'Atlantis-v0': 0,'BankHeist-v0': 0,
+envFitnesses = {
+    'Alien-v0': 0,'Asteroids-v0': 0,'Atlantis-v0': 0,'BankHeist-v0': 0,
     'BattleZone-v0': 0,'Bowling-v0': 0,'Boxing-v0': 0,'Centipede-v0': 0,
     'ChopperCommand-v0': 0,'DoubleDunk-v0': 0,'FishingDerby-v0': 0,
     'Freeway-v0': 0,'Frostbite-v0': 0,'Gravitar-v0': 0,'Hero-v0': 0,
@@ -146,6 +147,8 @@ curGen = 0 # generation of tpg
 curCycle = 0 # times gone through all current games
 cycleSwitch = 100 # switch to play all games in single eval
 
+logFileName = 'ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+
 while True: # do generations with no end
     scoreList = man.list()
     
@@ -164,8 +167,10 @@ while True: # do generations with no end
         
     curEnvName = curEnvNames.pop() # get env to play on this generation
     
-    if curCycle < cycleSwitch or len(curEnvNames) == len(curEnvNamesCp):
+    if (curCycle < cycleSwitch or len(curEnvNames) == len(curEnvNamesCp) or 
+            agents is None or len(agents) == 0): # error checking cases
         agents = trainer.getAllAgents(skipTasks=[]) # swap out agents only at start of generation
+        
     pool.map(runAgent, 
         [(agent, curEnvName, scoreList, numEpisodes, numFrames)
         for agent in agents])
@@ -204,5 +209,14 @@ while True: # do generations with no end
         print('On Generation: ' + str(curGen))
         print('On Cycle: ' + str(curCycle))
         print('Results: ', str(allScores))
+
+        with open(logFileName, 'a') as f:
+            f.write(str(curGen) + ': ' 
+                + str(envsName) + ' | ' 
+                + str(scoreStats['min']) + ' | ' 
+                + str(scoreStats['max']) + ' | '
+                + str(scoreStats['average']) + '\n')
+    elif curCycle % 10 == 0: # evaluate env fitnesses, incase haven't visited in a while
+        
             
 
