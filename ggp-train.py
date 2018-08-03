@@ -44,7 +44,7 @@ def runAgent(args):
     numFrames = args[4] 
     
     # skip if task already done by agent
-    if agent.taskDone(envName):
+    if agent.taskDone(envName+'-'+str(numFrames)):
         print('Agent #' + str(agent.getAgentNum()) + ' can skip.')
         scoreList.append((agent.getUid(), agent.getOutcomes()))
         return
@@ -88,6 +88,9 @@ def limit_cpu():
     p = psutil.Process(os.getpid())
     p.nice(10)
     
+def getEnvFitness(env, score):
+    return (soloTpgScores[env]-score)/(soloTpgScores[env]-soloRandScores[env])
+    
 # all of the titles we will be general game playing on
 # we chose games that we know TPG does OK in alone
 envNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
@@ -101,10 +104,9 @@ envNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
 
 # Kelly, S., & Heywood, M. I. (2018). 
 # Emergent Solutions to High-Dimensional Multi-Task Reinforcement Learning. 
-# Evolutionary Computation, 26(1), 1–33. 
+# Evolutionary Computation, 26(1), 1-33. 
 # https://doi.org/10.1162/evco_a_00232
 # scores that tpg achieved running just the game on its own, not ggp
-# tennis changed to 1 from 0
 soloTpgScores = {
      'Alien-v0': 3382.7,'Asteroids-v0': 3050.7,'Atlantis-v0': 89653,'BankHeist-v0': 1051,
      'BattleZone-v0': 47233.4,'Bowling-v0': 223.7,'Boxing-v0': 76.5,'Centipede-v0': 34731.7,
@@ -112,8 +114,19 @@ soloTpgScores = {
      'Freeway-v0': 28.9,'Frostbite-v0': 8144.4,'Gravitar-v0': 786.7,'Hero-v0': 16545.4,
      'IceHockey-v0': 10,'Jamesbond-v0': 3120,'Kangaroo-v0': 14780,'Krull-v0': 12850.4,
      'KungFuMaster-v0': 43353.4,'MsPacman-v0': 5156,'PrivateEye-v0': 15028.3,
-     'RoadRunner-v0': 17410,'Tennis-v0': 1,'TimePilot-v0': 13540,
+     'RoadRunner-v0': 17410,'Tennis-v0': 0,'TimePilot-v0': 13540,
      'UpNDown-v0': 34416,'Venture-v0': 576.7,'WizardOfWor-v0': 5196.7,'Zaxxon-v0': 6233.4}
+
+# on 1000 frame episodes, average of 20 episodes
+soloRandomScores = {
+     'Alien-v0': 163.0,'Asteroids-v0': 745.0,'Atlantis-v0': 9270.0,'BankHeist-v0': 15.5,
+     'BattleZone-v0': 1450.0,'Bowling-v0': 8.05,'Boxing-v0': -3.45,'Centipede-v0': 2107.75,
+     'ChopperCommand-v0': 710.0,'DoubleDunk-v0': -5.6,'FishingDerby-v0': -40.85,
+     'Freeway-v0': 0.0,'Frostbite-v0': 67.5,'Gravitar-v0': 180.0,'Hero-v0': 533.25,
+     'IceHockey-v0': -2.7,'Jamesbond-v0': 27.5,'Kangaroo-v0': 60.0,'Krull-v0': 639.45,
+     'KungFuMaster-v0': 440.0,'MsPacman-v0': 188.5,'PrivateEye-v0': 25.0,
+     'RoadRunner-v0': 15.0,'Tennis-v0': -10.5,'TimePilot-v0': 520.0,
+     'UpNDown-v0': 400.5,'Venture-v0': 0.0,'WizardOfWor-v0': 335.0,'Zaxxon-v0': 20.0}
 
 envFitnesses = {
     'Alien-v0': 0,'Asteroids-v0': 0,'Atlantis-v0': 0,'BankHeist-v0': 0,
@@ -126,7 +139,7 @@ envFitnesses = {
     'UpNDown-v0': 0,'Venture-v0': 0,'WizardOfWor-v0': 0,'Zaxxon-v0': 0}
 
 
-trainer = TpgTrainer(actions=range(18), teamPopSizeInit=150)
+trainer = TpgTrainer(actions=range(18), teamPopSizeInit=20)
 
 processes = 2
 pool = mp.Pool(processes=processes, initializer=limit_cpu)
@@ -136,8 +149,8 @@ curEnvNames = []
 curEnvNamesCp = [] # copy of curEnvNames
 numActiveEnvs = len(envNames) # start with all games
 
-numEpisodes = 1#0 # repeat evaluations to deal with randomness
-numFrames = 20#250 # number of frames per episode, to increase as time goes on
+numEpisodes = 0 # repeat evaluations to deal with randomness
+numFrames = 0 # number of frames per episode, to increase as time goes on
 
 allScores = [] # track all scores each generation
 
@@ -145,7 +158,7 @@ tStart = time.time()
 
 curGen = 0 # generation of tpg
 curCycle = 0 # times gone through all current games
-cycleSwitch = 15#100 # switch to play all games in single eval
+cycleSwitch = 100 # switch to play all games in single eval
 
 logFileName = 'ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 tmp = 0
@@ -160,16 +173,17 @@ while True: # do generations with no end
         random.shuffle(curEnvNames) # not sure if this necessary
         curEnvNamesCp = list(curEnvNames)
         # gradually increase the number of episodes and frames, and decrease active games
-        #if numEpisodes < 5:
-        if tmp < 5:
+        if numEpisodes < 5:
             tmp += 1
-            #numEpisodes += 1 # up to 5
-            #numFrames += 150 # up to 1000
+            numEpisodes += 1 # up to 5
+            numFrames += 200 # up to 1000
             numActiveEnvs -= 4 # down to 9
+        if curCycle == cycleSwitch:
+            numActiveEnvs = 6 # drop to a reasonable number of titles to play
         
     curEnvName = curEnvNames.pop() # get env to play on this generation
     
-    if (curCycle < cycleSwitch or len(curEnvNames) == len(curEnvNamesCp) or 
+    if (curCycle < cycleSwitch or len(curEnvNames) == len(curEnvNamesCp) - 1 or 
             agents is None or len(agents) == 0): # error checking cases
         agents = trainer.getAllAgents(skipTasks=[]) # swap out agents only at start of generation
         
@@ -197,11 +211,17 @@ while True: # do generations with no end
 
         # apply fitness of just played env
         if curCycle < cycleSwitch:
-            envFitnesses[curEnvName] = (-scoreStats['average']/soloTpgScores[curEnvName]) + 1
+            try:
+                envFitnesses[curEnvName] = getEnvFitness(curEnvName, scoreStats['average'])
+            except:
+                envFitnesses[curEnvName] = 1
         elif len(curEnvNames) == 0:
             for env in curEnvNamesCp:
                 scoreStats = trainer.generateScoreStats(tasks=[env+'-'+str(numFrames)])
-                envFitnesses[env] = (-scoreStats['average']/soloTpgScores[env]) + 1
+                try:
+                    envFitnesses[env] = getEnvFitness(env, scoreStats['average'])
+                except:
+                    envFitnesses[env] = 1
 
         trainer.evolve(tasks=tasks) # go into next gen
 
@@ -212,7 +232,7 @@ while True: # do generations with no end
         print('Time Taken (Seconds): ' + str(time.time() - tStart))
         print('On Generation: ' + str(curGen))
         print('On Cycle: ' + str(curCycle))
-        print('Results: ', str(allScores))
+        #print('Results: ', str(allScores))
 
         with open(logFileName, 'a') as f:
             f.write(str(curGen) + ' | ' 
@@ -221,7 +241,8 @@ while True: # do generations with no end
                 + str(scoreStats['max']) + ' | '
                 + str(scoreStats['average']) + '\n')
     
-    if curCycle % 10 == 0: # evaluate env fitnesses, incase haven't visited in a while
+    # evaluate env fitnesses, incase haven't visited in a while
+    if curCycle % 10 == 0 and len(curEnvNames) == 0: 
         print('In to evaluation of fitnesses of envs!')
         for envName in envNames:
             scoreList = man.list()
@@ -230,8 +251,11 @@ while True: # do generations with no end
                 for agent in agents])
             trainer.applyScores(scoreList)
             scoreStats = trainer.generateScoreStats(tasks=[envName+'-'+str(numFrames)])
-            envFitnesses[envName] = (-scoreStats['average']/soloTpgScores[envName]) + 1
-            print('Env ' + envName + ' with fitness ' + envFitnesses[envName])
+            try:
+                envFitnesses[envName] = getEnvFitness(env, scoreStats['average'])
+            except:
+                envFitnesses[envName] = 1
+            print('Env ' + envName + ' with fitness ' + str(envFitnesses[envName]))
 
 
 

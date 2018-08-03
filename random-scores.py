@@ -4,6 +4,7 @@ import gym.spaces
 
 import multiprocessing as mp
 import psutil
+import os
 
 """
 Run each agent in this method for parallization.
