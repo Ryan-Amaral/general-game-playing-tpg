@@ -176,7 +176,7 @@ while True: # do generations with no end
         if numEpisodes < 5:
             tmp += 1
             numEpisodes += 1 # up to 5
-            numFrames += 200 # up to 1000
+            numFrames += 200 # up to 1000 go to 18000 actually
             numActiveEnvs -= 4 # down to 9
         if curCycle == cycleSwitch:
             numActiveEnvs = 6 # drop to a reasonable number of titles to play
