@@ -80,7 +80,7 @@ def runAgent(args):
        
     scoreTotal /= numEpisodes
     env.close()
-    agent.reward(scoreTotal, envName)
+    agent.reward(scoreTotal, envName+'-'+str(numFrames))
     scoreList.append((agent.getUid(), agent.getOutcomes()))
     
 # https://stackoverflow.com/questions/42103367/limit-total-cpu-usage-in-python-multiprocessing/42130713
@@ -93,90 +93,77 @@ def getEnvFitness(env, score):
     
 # all of the titles we will be general game playing on
 # we chose games that we know TPG does OK in alone
-allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
+envNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'BattleZone-v0','Bowling-v0','Boxing-v0','Centipede-v0',
                'ChopperCommand-v0','DoubleDunk-v0','FishingDerby-v0',
                'Freeway-v0','Frostbite-v0','Gravitar-v0','Hero-v0',
                'IceHockey-v0','Jamesbond-v0','Kangaroo-v0','Krull-v0',
                'KungFuMaster-v0','MsPacman-v0','PrivateEye-v0',
-               'RoadRunner-v0','Skiing-v0','Tennis-v0','TimePilot-v0',
+               'RoadRunner-v0','Tennis-v0','TimePilot-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
 
-envFitnesses = {}
-for envName in allEnvNames:
-    envFitnesses[envName] = 0
+# Kelly, S., & Heywood, M. I. (2018). 
+# Emergent Solutions to High-Dimensional Multi-Task Reinforcement Learning. 
+# Evolutionary Computation, 26(1), 1-33. 
+# https://doi.org/10.1162/evco_a_00232
+# scores that tpg achieved running just the game on its own, not ggp
+soloTpgScores = {
+     'Alien-v0': 3382.7,'Asteroids-v0': 3050.7,'Atlantis-v0': 89653,'BankHeist-v0': 1051,
+     'BattleZone-v0': 47233.4,'Bowling-v0': 223.7,'Boxing-v0': 76.5,'Centipede-v0': 34731.7,
+     'ChopperCommand-v0': 7070,'DoubleDunk-v0': 2,'FishingDerby-v0': 49,
+     'Freeway-v0': 28.9,'Frostbite-v0': 8144.4,'Gravitar-v0': 786.7,'Hero-v0': 16545.4,
+     'IceHockey-v0': 10,'Jamesbond-v0': 3120,'Kangaroo-v0': 14780,'Krull-v0': 12850.4,
+     'KungFuMaster-v0': 43353.4,'MsPacman-v0': 5156,'PrivateEye-v0': 15028.3,
+     'RoadRunner-v0': 17410,'Tennis-v0': 0,'TimePilot-v0': 13540,
+     'UpNDown-v0': 34416,'Venture-v0': 576.7,'WizardOfWor-v0': 5196.7,'Zaxxon-v0': 6233.4}
 
-trainer = TpgTrainer(actions=range(18), teamPopSizeInit=360)
+# on 1000 frame episodes, average of 20 episodes
+soloRandomScores = {
+     'Alien-v0': 163.0,'Asteroids-v0': 745.0,'Atlantis-v0': 9270.0,'BankHeist-v0': 15.5,
+     'BattleZone-v0': 1450.0,'Bowling-v0': 8.05,'Boxing-v0': -3.45,'Centipede-v0': 2107.75,
+     'ChopperCommand-v0': 710.0,'DoubleDunk-v0': -5.6,'FishingDerby-v0': -40.85,
+     'Freeway-v0': 0.0,'Frostbite-v0': 67.5,'Gravitar-v0': 180.0,'Hero-v0': 533.25,
+     'IceHockey-v0': -2.7,'Jamesbond-v0': 27.5,'Kangaroo-v0': 60.0,'Krull-v0': 639.45,
+     'KungFuMaster-v0': 440.0,'MsPacman-v0': 188.5,'PrivateEye-v0': 25.0,
+     'RoadRunner-v0': 15.0,'Tennis-v0': -10.5,'TimePilot-v0': 520.0,
+     'UpNDown-v0': 400.5,'Venture-v0': 0.0,'WizardOfWor-v0': 335.0,'Zaxxon-v0': 20.0}
+
+envFitnesses = {
+    'Alien-v0': 0,'Asteroids-v0': 0,'Atlantis-v0': 0,'BankHeist-v0': 0,
+    'BattleZone-v0': 0,'Bowling-v0': 0,'Boxing-v0': 0,'Centipede-v0': 0,
+    'ChopperCommand-v0': 0,'DoubleDunk-v0': 0,'FishingDerby-v0': 0,
+    'Freeway-v0': 0,'Frostbite-v0': 0,'Gravitar-v0': 0,'Hero-v0': 0,
+    'IceHockey-v0': 0,'Jamesbond-v0': 0,'Kangaroo-v0': 0,'Krull-v0': 0,
+    'KungFuMaster-v0': 0,'MsPacman-v0': 0,'PrivateEye-v0': 0,
+    'RoadRunner-v0': 0,'Tennis-v0': 0,'TimePilot-v0': 0,
+    'UpNDown-v0': 0,'Venture-v0': 0,'WizardOfWor-v0': 0,'Zaxxon-v0': 0}
+
+
+trainer = TpgTrainer(actions=range(18), teamPopSizeInit=20)
 
 processes = 2
 pool = mp.Pool(processes=processes, initializer=limit_cpu)
 man = mp.Manager()
 
-envPopSize = 9 # number of envs to up in envNamePop
+curEnvNames = []
+curEnvNamesCp = [] # copy of curEnvNames
+numActiveEnvs = len(envNames) # start with all games
 
-numEpisodes = 5 # times to evaluate each env
-numFrames = 200 # number of frames per episode, to increase as time goes on
+numEpisodes = 0 # repeat evaluations to deal with randomness
+numFrames = 0 # number of frames per episode, to increase as time goes on
 
 allScores = [] # track all scores each generation
 
 tStart = time.time()
 
-envGen = 0 # generation of cycling through env pop
+curGen = 0 # generation of tpg
+curCycle = 0 # times gone through all current games
+cycleSwitch = 100 # switch to play all games in single eval
 
 logFileName = 'ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+tmp = 0
 while True: # do generations with no end
-    scoreList = man.list() # to hold scores of current gen
-    envGen += 1
-    if envGen == 5:
-        numFrames = 500
-    elif envGen == 20:
-        numFrames = 1000
-    elif envGen == 30:
-        numFrames = 2000
-    elif envGen == 40:
-        numFrames = 5000
-    elif envGen == 50:
-        numFrames = 18000
-    
-    # choose the new env name pop
-    sortedEnvFits = sorted(envFitnesses.items(), key=operator.itemgetter(1), reverse=True)
-    envNamesPop = [envFit[0] for envFit in sortedEnvFits[:envPopSize]]
-    
-    # run each env multiple times
-    for ep in numEpisodes:
-        # choose order of envs to run
-        envNames = list(envNamesPop)
-        random.shuffle(envNames)
-        
-        # run each env per episode
-        for envName in envNames:
-            # run the agents in the env
-            pool.map(runAgent, 
-                [(agent, envName, scoreList, 1, numFrames)
-                for agent in trainer.getAllAgents(skipTasks=[], noRef=True)])
-        
-            trainer.applyScores(scoreList)
-            trainer.evolve(tasks=[envName], elitistTasks=allEnvNames)
-            
-            tpgBest = trainer.scoreStats['max']
-            tpgWorst = trainer.scoreStats['min']
-            
-            # scores of tpg agents normalized between 0 and 1
-            tpgScores = [(score-tpgWorst)/(tpgBest-tpgWorst) for score in trainer.scoreStats['scores']]
-            
-            # calculate fitness of the environments
-            envFits = [(2*score/0.75)-(score)**2]
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    scoreList = man.list()
     
     # reload curGames if needed
     if len(curEnvNames) == 0:
