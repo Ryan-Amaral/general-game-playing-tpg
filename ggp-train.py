@@ -103,8 +103,6 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
 
 envFitnesses = {}
-for envName in allEnvNames:
-    envFitnesses[envName] = 0
 
 trainer = TpgTrainer(actions=range(18), teamPopSizeInit=360)
 
@@ -113,6 +111,7 @@ pool = mp.Pool(processes=processes, initializer=limit_cpu)
 man = mp.Manager()
 
 envPopSize = 9 # number of envs to up in envNamePop
+envGapSize = 3 # number of envs to replace in envPop
 
 numEpisodes = 5 # times to evaluate each env
 numFrames = 200 # number of frames per episode, to increase as time goes on
@@ -123,7 +122,11 @@ tStart = time.time()
 
 envGen = 0 # generation of cycling through env pop
 
+# create log file and header
 logFileName = 'ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+with open(logFileName, 'a') as f:
+    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg')
+
 while True: # do generations with no end
     scoreList = man.list() # to hold scores of current gen
     envGen += 1
@@ -140,16 +143,29 @@ while True: # do generations with no end
     
     # choose the new env name pop
     sortedEnvFits = sorted(envFitnesses.items(), key=operator.itemgetter(1), reverse=True)
-    envNamesPop = [envFit[0] for envFit in sortedEnvFits[:envPopSize]]
+    envNamesPop = [envFit[0] for envFit in sortedEnvFits[:envPopSize-envGapSize]] # keep top ones
+    sortedNewEnvFits = sortedEnvFits[envPopSize:]
+    random.shuffle(sortedNewEnvFits)
+    for i in range(envGapSize): # replace gap size with random
+        envNamesPop.append(sortedNewEnvFits[i])
+        
+    # reset env fitnesses
+    for envName in allEnvNames:
+        envFitnesses[envName] = 0
+        
+    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    print('Env Gen: ' + str(envGen))
+    print('Envs: ' + str(envNamesPop))
     
     # run each env multiple times
-    for ep in numEpisodes:
+    for ep in range(numEpisodes):
+        print('On to Episode: ' + str(ep))
         # choose order of envs to run
-        envNames = list(envNamesPop)
-        random.shuffle(envNames)
+        random.shuffle(envNamesPop)
         
         # run each env per episode
-        for envName in envNames:
+        for envName in envNamesPop:
+            print('On to Game: ' + envName)
             # run the agents in the env
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 1, numFrames)
@@ -158,123 +174,35 @@ while True: # do generations with no end
             trainer.applyScores(scoreList)
             trainer.evolve(tasks=[envName], elitistTasks=allEnvNames)
             
+            # report to log
+            with open(logFileName, 'a') as f:
+                f.write(str(trainer.curGen) + ','
+                    + str(envGen) + ','
+                    + str(numFrames) + ','
+                    + envName + ','
+                    + str(trainer.scoreStats['min']) + ','
+                    + str(trainer.scoreStats['max']) + ','
+                    + str(trainer.scoreStats['average']))
+            
+            # save model after every gen
+            with open('tpg-trainer-ggp.pkl','wb') as f:
+                pickle.dump(trainer,f)
+            
             tpgBest = trainer.scoreStats['max']
             tpgWorst = trainer.scoreStats['min']
             
             # scores of tpg agents normalized between 0 and 1
             tpgScores = [(score-tpgWorst)/(tpgBest-tpgWorst) for score in trainer.scoreStats['scores']]
             
-            # calculate fitness of the environments
-            envFits = [(2*score/0.75)-(score)**2]
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    # reload curGames if needed
-    if len(curEnvNames) == 0:
-        curCycle += 1
-        sortedEnvFits = sorted(envFitnesses.items(), key=operator.itemgetter(1), reverse=True)
-        curEnvNames = [envFit[0] for envFit in sortedEnvFits[:numActiveEnvs]]
-        random.shuffle(curEnvNames) # not sure if this necessary
-        curEnvNamesCp = list(curEnvNames)
-        # gradually increase the number of episodes and frames, and decrease active games
-        if numEpisodes < 5:
-            tmp += 1
-            numEpisodes += 1 # up to 5
-            numFrames += 200 # up to 1000 go to 18000 actually
-            numActiveEnvs -= 4 # down to 9
-        if curCycle == cycleSwitch:
-            numActiveEnvs = 6 # drop to a reasonable number of titles to play
-        
-    curEnvName = curEnvNames.pop() # get env to play on this generation
-    
-    if (curCycle < cycleSwitch or len(curEnvNames) == len(curEnvNamesCp) - 1 or 
-            agents is None or len(agents) == 0): # error checking cases
-        agents = trainer.getAllAgents(skipTasks=[], noRef=True) # swap out agents only at start of generation
-        
-    pool.map(runAgent, 
-        [(agent, curEnvName, scoreList, numEpisodes, numFrames)
-        for agent in agents])
-    
-    # apply scores
-    trainer.applyScores(scoreList)
-
-    if curCycle < cycleSwitch or len(curEnvNames) == 0: # time to evolve
-        print(chr(27) + "[2J")
-        curGen += 1
-        if curCycle < cycleSwitch: # regular evolution, after each individual game
-            print('In to new gen!')
-            tasks = [curEnvName+'-'+str(numFrames)]
-            envsName = curEnvName
-        elif len(curEnvNames) == 0: # more advanced, after play all games
-            print('In to new cycle!')
-            tasks = [envName+'-'+str(numFrames) for envName in curEnvNamesCp]
-            envsName = ','.join(curEnvNamesCp)
-        
-        scoreStats = trainer.generateScoreStats(tasks=tasks)
-        allScores.append((envsName, scoreStats['min'], scoreStats['max'], scoreStats['average']))
-
-        # apply fitness of just played env
-        if curCycle < cycleSwitch:
-            try:
-                envFitnesses[curEnvName] = getEnvFitness(curEnvName, scoreStats['average'])
-            except:
-                envFitnesses[curEnvName] = 1
-        elif len(curEnvNames) == 0:
-            for env in curEnvNamesCp:
-                scoreStats = trainer.generateScoreStats(tasks=[env+'-'+str(numFrames)])
-                try:
-                    envFitnesses[env] = getEnvFitness(env, scoreStats['average'])
-                except:
-                    envFitnesses[env] = 1
-
-        trainer.evolve(tasks=tasks) # go into next gen
-
-        # save model after every gen
-        with open('saved-model-1.pkl','wb') as f:
-            pickle.dump(trainer,f)
-    
-        print('Time Taken (Seconds): ' + str(time.time() - tStart))
-        print('On Generation: ' + str(curGen))
-        print('On Cycle: ' + str(curCycle))
-        #print('Results: ', str(allScores))
-
-        with open(logFileName, 'a') as f:
-            f.write(str(curGen) + ' | ' 
-                + str(envsName) + ' | ' 
-                + str(scoreStats['min']) + ' | ' 
-                + str(scoreStats['max']) + ' | '
-                + str(scoreStats['average']) + '\n')
-    
-    # evaluate env fitnesses, incase haven't visited in a while
-    if curCycle % 10 == 0 and len(curEnvNames) == 0: 
-        print('In to evaluation of fitnesses of envs!')
-        for envName in envNames:
-            scoreList = man.list()
-            pool.map(runAgent, 
-                [(agent, envName, scoreList, numEpisodes, numFrames)
-                for agent in agents])
-            trainer.applyScores(scoreList)
-            scoreStats = trainer.generateScoreStats(tasks=[envName+'-'+str(numFrames)])
-            try:
-                envFitnesses[envName] = getEnvFitness(env, scoreStats['average'])
-            except:
-                envFitnesses[envName] = 1
-            print('Env ' + envName + ' with fitness ' + str(envFitnesses[envName]))
-
-
-
-
-
-
-
+            # calculate fitness of the environments for each agent
+            tpgEnvFits = [(2*score/0.75)-(score)**2]
+            
+            # the final fitness of the current environment
+            envFit = sum(tpgEnvFits)/len(tpgEnvFits)
+            
+            # add score to fitness for environment
+            envFitnesses[envName] += envFit
+            
+            
 
 
