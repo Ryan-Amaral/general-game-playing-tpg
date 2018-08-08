@@ -103,8 +103,11 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
 
 envFitnesses = {}
+# reset env fitnesses
+for envName in allEnvNames:
+    envFitnesses[envName] = 0
 
-trainer = TpgTrainer(actions=range(18), teamPopSizeInit=360)
+trainer = TpgTrainer(actions=range(18), teamPopSizeInit=500)
 
 processes = 2
 pool = mp.Pool(processes=processes, initializer=limit_cpu)
@@ -125,20 +128,31 @@ envGen = 0 # generation of cycling through env pop
 # create log file and header
 logFileName = 'ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 with open(logFileName, 'a') as f:
-    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg')
-
+    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg\n')
+logFileMpName = 'ggp-log-multiperformance-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+with open(logFileMpName, 'a') as f:
+    f.write('tpgGen,envGen,frames')
+    for envName in allEnvNames:
+        f.write(',' + envName)
+    f.write('\n')
+    
 while True: # do generations with no end
     scoreList = man.list() # to hold scores of current gen
     envGen += 1
-    if envGen == 5:
+    if envGen == 11:
+        trainer.clearOutcomes()
         numFrames = 500
-    elif envGen == 20:
+    elif envGen == 21:
+        trainer.clearOutcomes()
         numFrames = 1000
-    elif envGen == 30:
+    elif envGen == 31:
+        trainer.clearOutcomes()
         numFrames = 2000
-    elif envGen == 40:
+    elif envGen == 41:
+        trainer.clearOutcomes()
         numFrames = 5000
-    elif envGen == 50:
+    elif envGen == 51:
+        trainer.clearOutcomes()
         numFrames = 18000
     
     # choose the new env name pop
@@ -147,7 +161,7 @@ while True: # do generations with no end
     sortedNewEnvFits = sortedEnvFits[envPopSize:]
     random.shuffle(sortedNewEnvFits)
     for i in range(envGapSize): # replace gap size with random
-        envNamesPop.append(sortedNewEnvFits[i])
+        envNamesPop.append(sortedNewEnvFits[i][0])
         
     # reset env fitnesses
     for envName in allEnvNames:
@@ -172,7 +186,7 @@ while True: # do generations with no end
                 for agent in trainer.getAllAgents(skipTasks=[], noRef=True)])
         
             trainer.applyScores(scoreList)
-            trainer.evolve(tasks=[envName], elitistTasks=allEnvNames)
+            trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)
             
             # report to log
             with open(logFileName, 'a') as f:
@@ -182,7 +196,7 @@ while True: # do generations with no end
                     + envName + ','
                     + str(trainer.scoreStats['min']) + ','
                     + str(trainer.scoreStats['max']) + ','
-                    + str(trainer.scoreStats['average']))
+                    + str(trainer.scoreStats['average']) + '\n')
             
             # save model after every gen
             with open('tpg-trainer-ggp.pkl','wb') as f:
@@ -192,10 +206,13 @@ while True: # do generations with no end
             tpgWorst = trainer.scoreStats['min']
             
             # scores of tpg agents normalized between 0 and 1
-            tpgScores = [(score-tpgWorst)/(tpgBest-tpgWorst) for score in trainer.scoreStats['scores']]
+            if tpgBest != tpgWorst:
+                tpgScores = [(score-tpgWorst)/(tpgBest-tpgWorst) for score in trainer.scoreStats['scores']]
+            else:
+                tpgScores = [0]*len(trainer.scoreStats['scores'])
             
             # calculate fitness of the environments for each agent
-            tpgEnvFits = [(2*score/0.75)-(score)**2]
+            tpgEnvFits = [(2*score/0.75)-(score)**2 for score in tpgScores]
             
             # the final fitness of the current environment
             envFit = sum(tpgEnvFits)/len(tpgEnvFits)
@@ -203,6 +220,42 @@ while True: # do generations with no end
             # add score to fitness for environment
             envFitnesses[envName] += envFit
             
+    # check how agents do on all titles (rarely)
+    print('Evaluating agents on all envs.')
+    if envGen % 10 == 0:
+        for team in trainer.rootTeams:
+            if len(team.outcomes) == len(allEnvNames):
+                with open(logFileMpName, 'a') as f:
+                    f.write(str(trainer.curGen) + ','
+                        + str(envGen) + ','
+                        + str(numFrames))
+                    for envName in allEnvNames:
+                        f.write(',' + str(team.outcomes[envName]))
+                    f.write('\n')
             
-
-
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            

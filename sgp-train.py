@@ -88,7 +88,7 @@ def limit_cpu():
     p = psutil.Process(os.getpid())
     p.nice(10)
 
-envName = 'Tennis-v0'
+envName = 'Assault-v0'
 tmpEnv = gym.make(envName)
 trainer = TpgTrainer(actions=range(tmpEnv.action_space.n), teamPopSizeInit=360)
 tmpEnv.close()
@@ -115,7 +115,7 @@ while True: # do generations with no end
     elif curGen == 50:
         frames = 5000
     elif curGen == 100:
-        frames = 99999
+        frames = 18000
     pool.map(runAgent, 
         [(agent, envName, scoreList, 1, frames)
         for agent in agents])
@@ -126,7 +126,7 @@ while True: # do generations with no end
     tasks = [envName+'-'+str(frames)]
     scoreStats = trainer.generateScoreStats(tasks=tasks)
     allScores.append((envName, scoreStats['min'], scoreStats['max'], scoreStats['average']))
-    trainer.evolve(tasks=tasks) # go into next gen
+    trainer.evolve(tasks=tasks, fitShare=False) # go into next gen
 
     # save model after every gen
     with open('saved-model-sgp.pkl','wb') as f:
