@@ -13,6 +13,11 @@ import os
 import pickle
 import operator
 import datetime
+from optparse import OptionParser
+
+parser = OptionParser()
+parser.add_option('-e', '--envgen', type='int', dest='envGen', default=0)
+(options, args) = parser.parse_args()
 
 
 """
@@ -107,9 +112,13 @@ envFitnesses = {}
 for envName in allEnvNames:
     envFitnesses[envName] = 0
 
-trainer = TpgTrainer(actions=range(18), teamPopSizeInit=500)
+if options.envGen > 0:
+    with open('tpg-trainer-ggp.pkl','rb') as f:
+        trainer = pickle.load(f)
+else:
+	trainer = TpgTrainer(actions=range(18), teamPopSizeInit=500)
 
-processes = 2
+processes = 15
 pool = mp.Pool(processes=processes, initializer=limit_cpu)
 man = mp.Manager()
 
@@ -123,13 +132,13 @@ allScores = [] # track all scores each generation
 
 tStart = time.time()
 
-envGen = 0 # generation of cycling through env pop
+envGen = options.envGen # generation of cycling through env pop
 
 # create log file and header
-logFileName = 'ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+logFileName = './logs/ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 with open(logFileName, 'a') as f:
     f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg\n')
-logFileMpName = 'ggp-log-multiperformance-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+logFileMpName = './logs/ggp-log-multiperformance-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 with open(logFileMpName, 'a') as f:
     f.write('tpgGen,envGen,frames')
     for envName in allEnvNames:
@@ -220,18 +229,17 @@ while True: # do generations with no end
             # add score to fitness for environment
             envFitnesses[envName] += envFit
             
-    # check how agents do on all titles (rarely)
+    # check how agents do on all titles
     print('Evaluating agents on all envs.')
-    if envGen % 10 == 0:
-        for team in trainer.rootTeams:
-            if len(team.outcomes) == len(allEnvNames):
-                with open(logFileMpName, 'a') as f:
-                    f.write(str(trainer.curGen) + ','
-                        + str(envGen) + ','
-                        + str(numFrames))
-                    for envName in allEnvNames:
-                        f.write(',' + str(team.outcomes[envName]))
-                    f.write('\n')
+    for team in trainer.rootTeams:
+	    if len(team.outcomes) == len(allEnvNames):
+		with open(logFileMpName, 'a') as f:
+		    f.write(str(trainer.curGen) + ','
+		        + str(envGen) + ','
+		        + str(numFrames))
+		    for envName in allEnvNames:
+		        f.write(',' + str(team.outcomes[envName]))
+		    f.write('\n')
             
             
             
