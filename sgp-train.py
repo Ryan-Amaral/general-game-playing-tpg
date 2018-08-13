@@ -13,7 +13,11 @@ import os
 import pickle
 import operator
 import datetime
+from optparse import OptionParser
 
+parser = OptionParser()
+parser.add_option('-g', '--gen', type='int', dest='curGen', default=0)
+(options, args) = parser.parse_args()
 
 """
 inState is (row x col x rgba) list. This converts it to a 1-D list. Because 
@@ -89,9 +93,14 @@ def limit_cpu():
     p.nice(10)
 
 envName = 'Assault-v0'
-tmpEnv = gym.make(envName)
-trainer = TpgTrainer(actions=range(tmpEnv.action_space.n), teamPopSizeInit=360)
-tmpEnv.close()
+
+if options.curGen == 0:
+    tmpEnv = gym.make(envName)
+    trainer = TpgTrainer(actions=range(tmpEnv.action_space.n), teamPopSizeInit=360)
+    tmpEnv.close()
+else:
+    with open('saved-model-sgp.pkl', 'rb') as f:
+        trainer = pickle.load(f)
 
 processes = 2
 pool = mp.Pool(processes=processes, initializer=limit_cpu)
@@ -101,9 +110,17 @@ allScores = [] # track all scores each generation
 
 tStart = time.time()
 
-curGen = 0 # generation of tpg
+curGen = options.curGen # generation of tpg
 
 logFileName = 'sgp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+
+if curGen < 50:
+    frames = 1000
+elif curGen < 100:
+    frames = 5000
+else:
+    frames = 18000
+
 while True: # do generations with no end
     curGen += 1
     scoreList = man.list()

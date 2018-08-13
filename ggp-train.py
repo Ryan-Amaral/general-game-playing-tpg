@@ -49,7 +49,7 @@ def runAgent(args):
     numFrames = args[4] 
     
     # skip if task already done by agent
-    if agent.taskDone(envName+'-'+str(numFrames)):
+    if agent.taskDone(envName):
         print('Agent #' + str(agent.getAgentNum()) + ' can skip.')
         scoreList.append((agent.getUid(), agent.getOutcomes()))
         return
@@ -144,6 +144,18 @@ with open(logFileMpName, 'a') as f:
     for envName in allEnvNames:
         f.write(',' + envName)
     f.write('\n')
+    
+# get starting frames
+if envGen >= 11 and envGen < 21:
+    numFrames = 500
+elif envGen >= 21 and envGen < 31:
+    numFrames = 1000
+elif envGen >= 31 and envGen < 41:
+    numFrames = 2000
+elif envGen >= 41 and envGen < 51:
+    numFrames = 5000
+elif envGen >= 51:
+    numFrames = 18000
     
 while True: # do generations with no end
     scoreList = man.list() # to hold scores of current gen
