@@ -24,16 +24,17 @@ inState is (row x col x rgba) list. This converts it to a 1-D list. Because
 that is what TPG uses.
 """
 def getState(inState):
-    outState = [0]*int((len(inState)/3)*(len(inState[0])/3))
+    skip = 3
+    outState = [0]*(len(inState)*len(inState[0]))
     cnt = 0
-    for row in range(0, len(inState), 3):
-        for col in range(0, len(inState[row]), 3):
+    for row in range(0, len(inState), skip):
+        for col in range(0, len(inState[row]), skip):
             outState[cnt] = ((inState[row][col][0] >> 1) 
                           + (inState[row][col][1] >> 2) 
                           + (inState[row][col][2] >> 3))
             cnt += 1
     
-    return outState
+    return outState[:cnt]
 
 """
 Run each agent in this method for parallization.
@@ -102,7 +103,7 @@ else:
     with open('saved-model-sgp.pkl', 'rb') as f:
         trainer = pickle.load(f)
 
-processes = 2
+processes = 1
 pool = mp.Pool(processes=processes, initializer=limit_cpu)
 man = mp.Manager()
 
