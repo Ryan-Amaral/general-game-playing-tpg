@@ -25,10 +25,10 @@ inState is (row x col x rgba) list. This converts it to a 1-D list. Because
 that is what TPG uses.
 """
 def getState(inState):
-    outState = [0]*int((len(inState)/5)*(len(inState[0])/5))
+    outState = [0]*int((len(inState)/3)*(len(inState[0])/3))
     cnt = 0
-    for row in range(0, len(inState), 5):
-        for col in range(0, len(inState[row]), 5):
+    for row in range(0, len(inState), 3):
+        for col in range(0, len(inState[row]), 3):
             outState[cnt] = ((inState[row][col][0] >> 1) 
                           + (inState[row][col][1] >> 2) 
                           + (inState[row][col][2] >> 3))
