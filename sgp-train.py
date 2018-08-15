@@ -115,9 +115,9 @@ curGen = options.curGen # generation of tpg
 
 logFileName = 'sgp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 
-if curGen < 50:
+if curGen < 25:
     frames = 1000
-elif curGen < 100:
+elif curGen < 50:
     frames = 5000
 else:
     frames = 18000
@@ -130,9 +130,9 @@ while True: # do generations with no end
        
     if curGen == 1:
         frames = 1000
-    elif curGen == 50:
+    elif curGen == 25:
         frames = 5000
-    elif curGen == 100:
+    elif curGen == 50:
         frames = 18000
     pool.map(runAgent, 
         [(agent, envName, scoreList, 1, frames)
