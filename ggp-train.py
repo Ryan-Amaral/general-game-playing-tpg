@@ -119,8 +119,8 @@ if options.envGen > 0:
 else:
 	trainer = TpgTrainer(actions=range(18), teamPopSizeInit=500)
 
-processes = 15
-pool = mp.Pool(processes=processes, initializer=limit_cpu)
+processes = 40
+pool = mp.Pool(processes=processes, initializer=limit_cpu, maxtasksperchild=50)
 man = mp.Manager()
 
 envPopSize = 9 # number of envs to up in envNamePop

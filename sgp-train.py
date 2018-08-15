@@ -103,8 +103,8 @@ else:
     with open('saved-model-sgp.pkl', 'rb') as f:
         trainer = pickle.load(f)
 
-processes = 1
-pool = mp.Pool(processes=processes, initializer=limit_cpu)
+processes = 2
+pool = mp.Pool(processes=processes, initializer=limit_cpu, maxtasksperchild=5)
 man = mp.Manager()
 
 allScores = [] # track all scores each generation
