@@ -205,7 +205,7 @@ while True: # do generations with no end
             # run the agents in the env
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 1, numFrames)
-                for agent in trainer.getAllAgents(noRef=True)])
+                for agent in trainer.getAllAgents(skipTasks=[envName],noRef=True)])
         
             trainer.applyScores(scoreList)
             trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)

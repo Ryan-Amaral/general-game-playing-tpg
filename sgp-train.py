@@ -126,7 +126,7 @@ while True: # do generations with no end
     curGen += 1
     scoreList = man.list()
     
-    agents = trainer.getAllAgents(noRef=True) # swap out agents only at start of generation
+    agents = trainer.getAllAgents(skipTasks=[envName+'-'+str(frames)],noRef=True) # swap out agents only at start of generation
        
     if curGen == 1:
         frames = 1000
