@@ -8,7 +8,7 @@ with open('saved-model-sgp.pkl', 'rb') as f:
     trainer = pickle.load(f)
     
 #nodes, edges = getFullGraph(trainer)
-nodes, edges = getRootTeamGraph(trainer.rootTeams[25])
+nodes, edges = getRootTeamGraph(trainer.getBestAgent(tasks=['Assault-v0-18000']).team)
         
 graph = nx.MultiDiGraph()
 graph.add_nodes_from(nodes)
@@ -31,9 +31,9 @@ for node in nodes:
         
 for edge in edges:
     if edge[1][0] == 'T':
-        edgeWeights.append(2.5)
+        edgeWeights.append(1.5)
     else:
-        edgeWeights.append(2)
+        edgeWeights.append(1)
     edgeColors.append('grey')
 
 pos = nx.spring_layout(graph, k=.5, iterations=20)
