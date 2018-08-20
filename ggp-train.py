@@ -149,13 +149,13 @@ with open(logFileMpName, 'a') as f:
 # get starting frames
 if envGen >= 11 and envGen < 21:
     numFrames = 500
-elif envGen >= 21 and envGen < 31:
+elif envGen >= 16 and envGen < 31:
     numFrames = 1000
-elif envGen >= 31 and envGen < 41:
+elif envGen >= 21 and envGen < 41:
     numFrames = 2000
-elif envGen >= 41 and envGen < 51:
+elif envGen >= 26 and envGen < 51:
     numFrames = 5000
-elif envGen >= 51:
+elif envGen >= 31:
     numFrames = 18000
     
 while True: # do generations with no end
@@ -164,16 +164,16 @@ while True: # do generations with no end
     if envGen == 11:
         trainer.clearOutcomes()
         numFrames = 500
-    elif envGen == 21:
+    elif envGen == 16:
         trainer.clearOutcomes()
         numFrames = 1000
-    elif envGen == 31:
+    elif envGen == 21:
         trainer.clearOutcomes()
         numFrames = 2000
-    elif envGen == 41:
+    elif envGen == 26:
         trainer.clearOutcomes()
         numFrames = 5000
-    elif envGen == 51:
+    elif envGen == 31:
         trainer.clearOutcomes()
         numFrames = 18000
     
@@ -205,7 +205,7 @@ while True: # do generations with no end
             # run the agents in the env
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 1, numFrames)
-                for agent in trainer.getAllAgents(skipTasks=[envName],noRef=True)])
+                for agent in trainer.getAllAgents(skipTasks=[],noRef=True)])
         
             trainer.applyScores(scoreList)
             trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)
