@@ -40,14 +40,14 @@ def getState(inState):
 """
 Run each agent in this method for parallization.
 Args:
-    args: (TpgAgent, envName, scoreList, numEpisodes, numFrames)
+    args: (TpgAgent, envName, scoreList, numRepeats, numFrames)
 """
 def runAgent(args):
     agent = args[0]
     envName = args[1]
     scoreList = args[2]
-    numEpisodes = args[3] # number of times to repeat game
-    numFrames = args[4] 
+    numRepeats = args[3] # number of times to repeat game
+    numFrames = args[4]
     
     # skip if task already done by agent
     if agent.taskDone(envName):
@@ -59,17 +59,17 @@ def runAgent(args):
     valActs = range(env.action_space.n) # valid actions, some envs are less
     
     scoreTotal = 0 # score accumulates over all episodes
-    for ep in range(numEpisodes): # episode loop
+    for rep in range(numRepeats): # episode loop
         state = env.reset()
         scoreEp = 0
         numRandFrames = 0
-        if numEpisodes > 1:
+        if numRepeats > 1:
             numRandFrames = random.randint(0,30)
         for i in range(numFrames): # frame loop
             if i < numRandFrames:
                 _, _, isDone, _ = env.step(env.action_space.sample())
                 if isDone: # don't count it if lose on random steps
-                    ep -= 1
+                    rep -= 1
                 continue
 
             act = agent.act(getState(state), valActs=valActs)
@@ -81,10 +81,10 @@ def runAgent(args):
                 break # end early if losing state
                 
         print('Agent #' + str(agent.getAgentNum()) + 
-              ' | Ep #' + str(ep) + ' | Score: ' + str(scoreEp))
+              ' | Rep #' + str(rep) + ' | Score: ' + str(scoreEp))
         scoreTotal += scoreEp
        
-    scoreTotal /= numEpisodes
+    scoreTotal /= numRepeats
     env.close()
     agent.reward(scoreTotal, envName)
     scoreList.append((agent.getUid(), agent.getOutcomes()))
@@ -117,10 +117,10 @@ if options.envGen > 0:
     with open('tpg-trainer-ggp.pkl','rb') as f:
         trainer = pickle.load(f)
 else:
-	trainer = TpgTrainer(actions=range(18), teamPopSizeInit=500)
+	trainer = TpgTrainer(actions=range(18), teamPopSizeInit=150)
 
 processes = 40
-pool = mp.Pool(processes=processes, initializer=limit_cpu, maxtasksperchild=50)
+pool = mp.Pool(processes=processes, initializer=limit_cpu, maxtasksperchild=5)
 man = mp.Manager()
 
 envPopSize = 9 # number of envs to up in envNamePop
@@ -136,30 +136,29 @@ tStart = time.time()
 envGen = options.envGen # generation of cycling through env pop
 
 # create log file and header
-logFileName = './logs/ggp-log-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+logFileName = 'ggp-log-gens-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 with open(logFileName, 'a') as f:
-    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg\n')
-logFileMpName = './logs/ggp-log-multiperformance-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit\n')
+logFileMpName = 'ggp-log-multiperformance-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 with open(logFileMpName, 'a') as f:
-    f.write('tpgGen,envGen,frames')
+    f.write('tpgGen,envGen,trainFrames,combined')
     for envName in allEnvNames:
         f.write(',' + envName)
     f.write('\n')
     
 # get starting frames
-if envGen >= 11 and envGen < 21:
+if envGen >= 11 and envGen < 16:
     numFrames = 500
-elif envGen >= 16 and envGen < 31:
+elif envGen >= 16 and envGen < 21:
     numFrames = 1000
-elif envGen >= 21 and envGen < 41:
+elif envGen >= 21 and envGen < 26:
     numFrames = 2000
-elif envGen >= 26 and envGen < 51:
+elif envGen >= 26 and envGen < 31:
     numFrames = 5000
 elif envGen >= 31:
     numFrames = 18000
     
 while True: # do generations with no end
-    scoreList = man.list() # to hold scores of current gen
     envGen += 1
     if envGen == 11:
         trainer.clearOutcomes()
@@ -202,23 +201,15 @@ while True: # do generations with no end
         # run each env per episode
         for envName in envNamesPop:
             print('On to Game: ' + envName)
+            
+            scoreList = man.list() # reset score list
             # run the agents in the env
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 1, numFrames)
-                for agent in trainer.getAllAgents(skipTasks=[],noRef=True)])
+                for agent in trainer.getAllAgents(skipTasks=[envName],noRef=True)])
         
             trainer.applyScores(scoreList)
             trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)
-            
-            # report to log
-            with open(logFileName, 'a') as f:
-                f.write(str(trainer.curGen) + ','
-                    + str(envGen) + ','
-                    + str(numFrames) + ','
-                    + envName + ','
-                    + str(trainer.scoreStats['min']) + ','
-                    + str(trainer.scoreStats['max']) + ','
-                    + str(trainer.scoreStats['average']) + '\n')
             
             # save model after every gen
             with open('tpg-trainer-ggp.pkl','wb') as f:
@@ -242,17 +233,37 @@ while True: # do generations with no end
             # add score to fitness for environment
             envFitnesses[envName] += envFit
             
+            # report to log
+            with open(logFileName, 'a') as f:
+                f.write(str(trainer.curGen) + ','
+                    + str(envGen) + ','
+                    + str(numFrames) + ','
+                    + envName + ','
+                    + str(trainer.scoreStats['min']) + ','
+                    + str(trainer.scoreStats['max']) + ','
+                    + str(trainer.scoreStats['average']) +  ','
+                    + str(envFit) + '\n')
+            
     # check how agents do on all titles
-    print('Evaluating agents on all envs.')
-    for team in trainer.rootTeams:
-	    if len(team.outcomes) == len(allEnvNames):
-		with open(logFileMpName, 'a') as f:
-		    f.write(str(trainer.curGen) + ','
-		        + str(envGen) + ','
-		        + str(numFrames))
-		    for envName in allEnvNames:
-		        f.write(',' + str(team.outcomes[envName]))
-		    f.write('\n')
+    if trainer.curGen % 1000 == 0:
+        print('Evaluating agents on all envs.')
+        scoreList = man.list() # reset score list
+        agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=3)
+        for envName in allEnvNames:
+            pool.map(runAgent, 
+                [(agent, envName, scoreList, 30, 18000)
+                for agent in agents])
+        
+        
+        for team in trainer.rootTeams:
+	        if len(team.outcomes) == len(allEnvNames):
+		    with open(logFileMpName, 'a') as f:
+		        f.write(str(trainer.curGen) + ','
+		            + str(envGen) + ','
+		            + str(numFrames))
+		        for envName in allEnvNames:
+		            f.write(',' + str(team.outcomes[envName]))
+		        f.write('\n')
             
             
             
