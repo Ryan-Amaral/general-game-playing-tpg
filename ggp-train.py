@@ -247,12 +247,13 @@ while True: # do generations with no end
     # check how agents do on all titles
     if trainer.curGen % 1000 == 0:
         print('Evaluating agents on all envs.')
-        scoreList = man.list() # reset score list
         agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=3)
         for envName in allEnvNames:
+            scoreList = man.list() # reset score list
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 30, 18000)
                 for agent in agents])
+            trainer.applyScores(scoreList)
         
         
         for team in trainer.rootTeams:
