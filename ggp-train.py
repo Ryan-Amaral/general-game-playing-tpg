@@ -139,9 +139,9 @@ envGen = options.envGen # generation of cycling through env pop
 logFileName = 'ggp-log-gens-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 with open(logFileName, 'a') as f:
     f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit\n')
-logFileMpName = 'ggp-log-multiperformance-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+logFileMpName = 'ggp-log-multiperf-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
 with open(logFileMpName, 'a') as f:
-    f.write('tpgGen,envGen,trainFrames,combined')
+    f.write('tpgGen,envGen,trainFrames,teamId')
     for envName in allEnvNames:
         f.write(',' + envName)
     f.write('\n')
@@ -248,47 +248,26 @@ while True: # do generations with no end
     if trainer.curGen % 1000 == 0:
         print('Evaluating agents on all envs.')
         agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=3)
+        agentScores = {} # save scores of agents here
+        for tId in [agent.team.uid for agent in agents]:
+            agentScores[tId] = {}
         for envName in allEnvNames:
             scoreList = man.list() # reset score list
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 30, 18000)
                 for agent in agents])
-            trainer.applyScores(scoreList)
+            # put scores in dict for env
+            for score in scoreList:
+                agentScores[score[0]][envName] = score[1][envName]
         
-        
-        for team in trainer.rootTeams:
-	        if len(team.outcomes) == len(allEnvNames):
-		    with open(logFileMpName, 'a') as f:
-		        f.write(str(trainer.curGen) + ','
-		            + str(envGen) + ','
-		            + str(numFrames))
-		        for envName in allEnvNames:
-		            f.write(',' + str(team.outcomes[envName]))
-		        f.write('\n')
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+        with open(logFileMpName, 'a') as f:
+            for uid in agentScores:
+                f.write(str(trainer.curGen) + ','
+		                + str(envGen) + ','
+		                + str(numFrames) + ','
+		                + str(uid))
+                for envName in allEnvNames:
+                    f.write(',' + str(agentScores[uid][envName]))
+                f.write('\n')
             
             
