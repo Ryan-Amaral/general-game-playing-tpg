@@ -16,7 +16,9 @@ import datetime
 from optparse import OptionParser
 
 parser = OptionParser()
-parser.add_option('-e', '--envgen', type='int', dest='envGen', default=0)
+parser.add_option('-g', '--envgen', type='int', dest='envGen', default=0)
+parser.add_option('-t', '--timeStamp', type='str', dest='timeStamp', default=datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
+parser.add_option('-p', '--pop', type='int', dest='popSize', default=150)
 (options, args) = parser.parse_args()
 
 
@@ -113,11 +115,13 @@ envFitnesses = {}
 for envName in allEnvNames:
     envFitnesses[envName] = 0
 
+trainerFileName = 'tpg-trainer-ggp' + options.timeStamp + '.pkl'
+
 if options.envGen > 0:
-    with open('tpg-trainer-ggp.pkl','rb') as f:
+    with open(trainerFileName, 'rb') as f:
         trainer = pickle.load(f)
 else:
-	trainer = TpgTrainer(actions=range(18), teamPopSizeInit=150)
+    trainer = TpgTrainer(actions=range(18), teamPopSizeInit=options.popSize)
 
 processes = 40
 pool = mp.Pool(processes=processes, initializer=limit_cpu, maxtasksperchild=5)
@@ -136,10 +140,10 @@ tStart = time.time()
 envGen = options.envGen # generation of cycling through env pop
 
 # create log file and header
-logFileName = 'ggp-log-gens-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+logFileName = 'ggp-log-gens-' + options.timeStamp + '.txt'
 with open(logFileName, 'a') as f:
     f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit\n')
-logFileMpName = 'ggp-log-multiperf-' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M") + '.txt'
+logFileMpName = 'ggp-log-multiperf-' + options.timeStamp + '.txt'
 with open(logFileMpName, 'a') as f:
     f.write('tpgGen,envGen,trainFrames,teamId')
     for envName in allEnvNames:
@@ -157,6 +161,8 @@ elif envGen >= 26 and envGen < 31:
     numFrames = 5000
 elif envGen >= 31:
     numFrames = 18000
+    
+multiTest = False # whether to to big test on all games for best few agents
     
 while True: # do generations with no end
     envGen += 1
@@ -206,13 +212,16 @@ while True: # do generations with no end
             # run the agents in the env
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 1, numFrames)
-                for agent in trainer.getAllAgents(skipTasks=[envName],noRef=True)])
+                for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
         
             trainer.applyScores(scoreList)
             trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)
             
+            if trainer.curGen % 1000 == 0:
+                multiTest = True
+            
             # save model after every gen
-            with open('tpg-trainer-ggp.pkl','wb') as f:
+            with open(trainerFileName,'wb') as f:
                 pickle.dump(trainer,f)
             
             tpgBest = trainer.scoreStats['max']
@@ -225,7 +234,7 @@ while True: # do generations with no end
                 tpgScores = [0]*len(trainer.scoreStats['scores'])
             
             # calculate fitness of the environments for each agent
-            tpgEnvFits = [(2*score/0.75)-(score)**2 for score in tpgScores]
+            tpgEnvFits = [(2*score/0.75)-(score/0.75)**2 for score in tpgScores]
             
             # the final fitness of the current environment
             envFit = sum(tpgEnvFits)/len(tpgEnvFits)
@@ -245,7 +254,8 @@ while True: # do generations with no end
                     + str(envFit) + '\n')
             
     # check how agents do on all titles
-    if trainer.curGen % 1000 == 0:
+    if multiTest:
+        multiTest = False
         print('Evaluating agents on all envs.')
         agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=3)
         agentScores = {} # save scores of agents here
