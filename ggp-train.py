@@ -51,11 +51,51 @@ def runAgent(args):
     numRepeats = args[3] # number of times to repeat game
     numFrames = args[4]
     
-    # skip if task already done by agent
-    if agent.taskDone(envName):
-        print('Agent #' + str(agent.getAgentNum()) + ' can skip.')
-        scoreList.append((agent.getUid(), agent.getOutcomes()))
-        return
+    env = gym.make(envName)
+    valActs = range(env.action_space.n) # valid actions, some envs are less
+    
+    scoreTotal = 0 # score accumulates over all episodes
+    for rep in range(numRepeats): # episode loop
+        state = env.reset()
+        scoreEp = 0
+        numRandFrames = 0
+        if numRepeats > 1:
+            numRandFrames = random.randint(0,30)
+        for i in range(numFrames): # frame loop
+            if i < numRandFrames:
+                _, _, isDone, _ = env.step(env.action_space.sample())
+                if isDone: # don't count it if lose on random steps
+                    rep -= 1
+                continue
+
+            act = agent.act(getState(state), valActs=valActs)
+
+            # feedback from env
+            state, reward, isDone, debug = env.step(act)
+            scoreEp += reward # accumulate reward in score
+            if isDone:
+                break # end early if losing state
+                
+        print('Agent #' + str(agent.getAgentNum()) + 
+              ' | Rep #' + str(rep) + ' | Score: ' + str(scoreEp))
+        scoreTotal += scoreEp
+       
+    scoreTotal /= numRepeats
+    env.close()
+    agent.reward(scoreTotal, envName)
+    scoreList.append((agent.getUid(), agent.getOutcomes()))
+    
+"""
+This one used for tracking visuals indexed
+Args:
+    args: (TpgAgent, envName, scoreList, numRepeats, numFrames)
+"""
+def runAgent(args):
+    agent = args[0]
+    envName = args[1]
+    scoreList = args[2]
+    numRepeats = args[3] # number of times to repeat game
+    numFrames = args[4]
     
     env = gym.make(envName)
     valActs = range(env.action_space.n) # valid actions, some envs are less
@@ -139,16 +179,34 @@ tStart = time.time()
 
 envGen = options.envGen # generation of cycling through env pop
 
-# create log file and header
-logFileName = 'ggp-log-gens-' + options.timeStamp + '.txt'
-with open(logFileName, 'a') as f:
-    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit\n')
+# create log files and headers
+logFilePosName = 'ggp-log-pos-' + options.timeStamp + '.txt'
+with open(logFilePosName, 'a') as f:
+    f.write('tpgGen,envGen,trainFrames')
+    for envName in allEnvNames:
+        f.write(',1st-' + envName)
+    for envName in allEnvNames:
+        f.write(',2nd-' + envName)
+    for envName in allEnvNames:
+        f.write(',3rd-' + envName)
+    for envName in allEnvNames:
+        f.write(',4th-' + envName)    
+    for envName in allEnvNames:
+        f.write(',5th-' + envName)
+    f.write('\n')
+
+logFileGenName = 'ggp-log-gens-' + options.timeStamp + '.txt'
+with open(logFileGenName, 'a') as f:
+    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize\n')
+    
 logFileMpName = 'ggp-log-multiperf-' + options.timeStamp + '.txt'
 with open(logFileMpName, 'a') as f:
     f.write('tpgGen,envGen,trainFrames,teamId')
     for envName in allEnvNames:
-        f.write(',' + envName)
-    f.write('\n')
+        f.write(',score' + envName)
+    for envName in allEnvNames:
+        f.write(',vis' + envName)
+    f.write(',visTotal\n')
     
 # get starting frames
 if envGen >= 11 and envGen < 16:
@@ -195,6 +253,7 @@ while True: # do generations with no end
         envFitnesses[envName] = 0
         
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    print('Tpg Gen" ' + str(trainer.curGen))
     print('Env Gen: ' + str(envGen))
     print('Envs: ' + str(envNamesPop))
     
@@ -243,7 +302,7 @@ while True: # do generations with no end
             envFitnesses[envName] += envFit
             
             # report to log
-            with open(logFileName, 'a') as f:
+            with open(logFileGenName, 'a') as f:
                 f.write(str(trainer.curGen) + ','
                     + str(envGen) + ','
                     + str(numFrames) + ','
@@ -251,13 +310,30 @@ while True: # do generations with no end
                     + str(trainer.scoreStats['min']) + ','
                     + str(trainer.scoreStats['max']) + ','
                     + str(trainer.scoreStats['average']) +  ','
-                    + str(envFit) + '\n')
+                    + str(envFit) + ','
+                    + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0]))+'\n')
             
     # check how agents do on all titles
     if multiTest:
         multiTest = False
         print('Evaluating agents on all envs.')
-        agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=3)
+        agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=5)
+        
+        agentsPos = trainer.getAgentsPositions(tasks=allEnvNames, topn=5)
+        # log the positions
+        with open(logFilePosName, 'a') as f:
+            f.write(str(trainer.curGen) + ','
+                        + str(envGen) + ','
+                        + str(numFrames))
+            for pos in range(5):
+                for envName in allEnvNames:
+                    if len(agentsPos[envName]) > pos:
+                        val = agentsPos[envName][pos].team.uid
+                    else:
+                        val = -1
+                    f.write(',' + str(val))
+            f.write('\n')
+        
         agentScores = {} # save scores of agents here
         for tId in [agent.team.uid for agent in agents]:
             agentScores[tId] = {}
@@ -273,9 +349,9 @@ while True: # do generations with no end
         with open(logFileMpName, 'a') as f:
             for uid in agentScores:
                 f.write(str(trainer.curGen) + ','
-		                + str(envGen) + ','
-		                + str(numFrames) + ','
-		                + str(uid))
+                        + str(envGen) + ','
+                        + str(numFrames) + ','
+                        + str(uid))
                 for envName in allEnvNames:
                     f.write(',' + str(agentScores[uid][envName]))
                 f.write('\n')
