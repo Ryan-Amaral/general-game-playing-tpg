@@ -319,7 +319,7 @@ while True: # do generations with no end
     if multiTest:
         multiTest = False
         print('Evaluating agents on all envs.')
-        agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=5)
+        agents = trainer.getBestAgents(tasks=allEnvNames, amount=3, topn=5)
         
         agentsPos = trainer.getAgentsPositions(tasks=allEnvNames, topn=5)
         # log the positions
@@ -350,7 +350,7 @@ while True: # do generations with no end
             # put scores in dict for env
             for score in scoreList:
                 agentScores[score[0]][envName] = score[1][envName]
-            for uid in visTrack:
+            for uid in visTrack.keys():
                 allVisTrack[uid][envName] = visTrack[uid]
                 
         for uid in allVisTrack:
