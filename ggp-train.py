@@ -131,7 +131,7 @@ def runAgent2(args):
     env.close()
     agent.reward(scoreTotal, envName)
     scoreList.append((agent.getUid(), agent.getOutcomes()))
-    visTrack[agent.team.uid] = agent.team.getScreenIndexed()
+    visTrack[agent.team.uid] = agent.screenIndexed
     
 # https://stackoverflow.com/questions/42103367/limit-total-cpu-usage-in-python-multiprocessing/42130713
 def limit_cpu():
@@ -255,12 +255,12 @@ while True: # do generations with no end
         envFitnesses[envName] = 0
         
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-    print('Tpg Gen" ' + str(trainer.curGen))
     print('Env Gen: ' + str(envGen))
     print('Envs: ' + str(envNamesPop))
     
     # run each env multiple times
     for ep in range(numEpisodes):
+        print('Tpg Gen: ' + str(trainer.curGen))
         print('On to Episode: ' + str(ep))
         # choose order of envs to run
         random.shuffle(envNamesPop)
