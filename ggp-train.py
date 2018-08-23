@@ -90,12 +90,13 @@ This one used for tracking visuals indexed
 Args:
     args: (TpgAgent, envName, scoreList, numRepeats, numFrames)
 """
-def runAgent(args):
+def runAgent2(args):
     agent = args[0]
     envName = args[1]
     scoreList = args[2]
     numRepeats = args[3] # number of times to repeat game
     numFrames = args[4]
+    visTrack = args[5]
     
     env = gym.make(envName)
     valActs = range(env.action_space.n) # valid actions, some envs are less
@@ -130,6 +131,7 @@ def runAgent(args):
     env.close()
     agent.reward(scoreTotal, envName)
     scoreList.append((agent.getUid(), agent.getOutcomes()))
+    visTrack[agent.team.uid] = agent.team.getScreenIndexed()
     
 # https://stackoverflow.com/questions/42103367/limit-total-cpu-usage-in-python-multiprocessing/42130713
 def limit_cpu():
@@ -335,16 +337,28 @@ while True: # do generations with no end
             f.write('\n')
         
         agentScores = {} # save scores of agents here
+        allVisTrack = {} # save indexed screen space here
         for tId in [agent.team.uid for agent in agents]:
             agentScores[tId] = {}
+            allVisTrack[tId] = {}
         for envName in allEnvNames:
             scoreList = man.list() # reset score list
-            pool.map(runAgent, 
-                [(agent, envName, scoreList, 30, 18000)
+            visTrack = man.dict()
+            pool.map(runAgent2, 
+                [(agent, envName, scoreList, 30, 18000, visTrack)
                 for agent in agents])
             # put scores in dict for env
             for score in scoreList:
                 agentScores[score[0]][envName] = score[1][envName]
+            for uid in visTrack:
+                allVisTrack[uid][envName] = visTrack[uid]
+                
+        for uid in allVisTrack:
+            allVisTrack[uid]['visTotal'] = [0]*len(allVisTrack[uid][allEnvNames[0]])
+            for envName in allEnvNames:
+                for i in range(len(allVisTrack[uid][envName])):
+                    if allVisTrack[uid][envName][i] == 1:
+                        allVisTrack[uid]['visTotal'][i] = 1
         
         with open(logFileMpName, 'a') as f:
             for uid in agentScores:
@@ -354,6 +368,8 @@ while True: # do generations with no end
                         + str(uid))
                 for envName in allEnvNames:
                     f.write(',' + str(agentScores[uid][envName]))
-                f.write('\n')
+                for envName in allEnvNames:
+                    f.write(',' + str(allVisTrack[uid][envName].count(1) / len(allVisTrack[uid][envName])))
+                f.write(',' + str(allVisTrack[uid]['visTotal'].count(1) / len(allVisTrack[uid]['visTotal'])) + '\n')
             
             
