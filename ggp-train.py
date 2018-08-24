@@ -1,4 +1,5 @@
 # imports and helper methods
+from __future__ import division
 from tpg.tpg_trainer import TpgTrainer
 from tpg.tpg_agent import TpgAgent
 
