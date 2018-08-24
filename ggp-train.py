@@ -290,9 +290,6 @@ while True: # do generations with no end
             trainer.applyScores(scoreList)
             trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)
             
-            if trainer.curGen % 750 == 0:
-                multiTest = True
-            
             # save model after every gen
             with open(trainerFileName,'wb') as f:
                 pickle.dump(trainer,f)
@@ -326,6 +323,9 @@ while True: # do generations with no end
                     + str(trainer.scoreStats['average']) +  ','
                     + str(envFit) + ','
                     + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0]))+'\n')
+            
+    if (envGen <= 30 and envGen % 15 == 0) or (envGen > 30 and envGen % 10 == 0):
+        multiTest = True
             
     # check how agents do on all titles
     if multiTest:
