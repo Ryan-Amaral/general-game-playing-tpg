@@ -153,6 +153,8 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'RoadRunner-v0','Skiing-v0','Tennis-v0','TimePilot-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
 
+todoEnvNames = list(allEnvNames)
+
 envFitnesses = {}
 # reset env fitnesses
 for envName in allEnvNames:
@@ -212,13 +214,13 @@ with open(logFileMpName, 'a') as f:
     f.write(',visTotal\n')
     
 # get starting frames
-if envGen >= 11 and envGen < 16:
+if envGen >= 6 and envGen < 11:
     numFrames = 500
-elif envGen >= 16 and envGen < 21:
+elif envGen >= 11 and envGen < 16:
     numFrames = 1000
-elif envGen >= 21 and envGen < 26:
+elif envGen >= 16 and envGen < 21:
     numFrames = 2000
-elif envGen >= 26 and envGen < 31:
+elif envGen >= 21 and envGen < 31:
     numFrames = 5000
 elif envGen >= 31:
     numFrames = 18000
@@ -227,20 +229,20 @@ multiTest = False # whether to to big test on all games for best few agents
     
 while True: # do generations with no end
     envGen += 1
-    if envGen == 11:
-        trainer.clearOutcomes()
+    if envGen == 6:
+        todoEnvNames = list(allEnvNames)
         numFrames = 500
-    elif envGen == 16:
-        trainer.clearOutcomes()
+    elif envGen == 11:
+        todoEnvNames = list(allEnvNames)
         numFrames = 1000
-    elif envGen == 21:
-        trainer.clearOutcomes()
+    elif envGen == 16:
+        todoEnvNames = list(allEnvNames)
         numFrames = 2000
-    elif envGen == 26:
-        trainer.clearOutcomes()
+    elif envGen == 21:
+        todoEnvNames = list(allEnvNames)
         numFrames = 5000
     elif envGen == 31:
-        trainer.clearOutcomes()
+        todoEnvNames = list(allEnvNames)
         numFrames = 18000
     
     # choose the new env name pop
@@ -271,15 +273,24 @@ while True: # do generations with no end
             print('On to Game: ' + envName)
             
             scoreList = man.list() # reset score list
+            
+            # skip task/env for some agents if already done with it
+            if envName in todoEnvNames:
+                skipTask = 'none'
+                if ep == numEpisodes - 1:
+                    todoEnvNames.remove(envName)
+            else:
+                skipTask = envName
+                
             # run the agents in the env
             pool.map(runAgent, 
                 [(agent, envName, scoreList, 1, numFrames)
-                for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
-        
+                for agent in trainer.getAllAgents(skipTasks=[skipTask], noRef=True)])
+                
             trainer.applyScores(scoreList)
             trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)
             
-            if trainer.curGen % 1000 == 0:
+            if trainer.curGen % 750 == 0:
                 multiTest = True
             
             # save model after every gen
