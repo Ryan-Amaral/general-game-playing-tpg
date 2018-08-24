@@ -357,7 +357,7 @@ while True: # do generations with no end
             allVisTrack[uid]['visTotal'] = [0]*len(allVisTrack[uid][allEnvNames[0]])
             for envName in allEnvNames:
                 for i in range(len(allVisTrack[uid][envName])):
-                    if allVisTrack[uid][envName][i] == 1:
+                    if allVisTrack[uid][envName][i] == 1 and i < len(allVisTrack[uid]['visTotal']):
                         allVisTrack[uid]['visTotal'][i] = 1
         
         with open(logFileMpName, 'a') as f:
