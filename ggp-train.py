@@ -61,7 +61,7 @@ def runAgent(args):
         scoreEp = 0
         numRandFrames = 0
         if numRepeats > 1:
-            numRandFrames = random.randint(0,30)
+            numRandFrames = random.randint(1,30)
         for i in range(numFrames): # frame loop
             if i < numRandFrames:
                 _, _, isDone, _ = env.step(env.action_space.sample())
@@ -108,7 +108,7 @@ def runAgent2(args):
         scoreEp = 0
         numRandFrames = 0
         if numRepeats > 1:
-            numRandFrames = random.randint(0,30)
+            numRandFrames = random.randint(1,30)
         for i in range(numFrames): # frame loop
             if i < numRandFrames:
                 _, _, isDone, _ = env.step(env.action_space.sample())
@@ -202,7 +202,7 @@ with open(logFilePosName, 'a') as f:
 
 logFileGenName = 'ggp-log-gens-' + options.timeStamp + '.txt'
 with open(logFileGenName, 'a') as f:
-    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize\n')
+    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,popsize,totalTeams,totalRootTeams\n')
     
 logFileMpName = 'ggp-log-multiperf-' + options.timeStamp + '.txt'
 with open(logFileMpName, 'a') as f:
@@ -322,7 +322,9 @@ while True: # do generations with no end
                     + str(trainer.scoreStats['max']) + ','
                     + str(trainer.scoreStats['average']) +  ','
                     + str(envFit) + ','
-                    + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0]))+'\n')
+                    + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0])) 
+                    + str(len(trainer.teams)) + ','
+                    + str(len(trainer.rootTeams)) + '\n')
             
     if (envGen <= 30 and envGen % 15 == 0) or (envGen > 30 and envGen % 10 == 0):
         multiTest = True
@@ -331,7 +333,7 @@ while True: # do generations with no end
     if multiTest:
         multiTest = False
         print('Evaluating agents on all envs.')
-        agents = trainer.getBestAgents(tasks=allEnvNames, amount=3, topn=5)
+        agents = trainer.getBestAgents(tasks=allEnvNames, amount=5, topn=5)
         
         agentsPos = trainer.getAgentsPositions(tasks=allEnvNames, topn=5)
         # log the positions
