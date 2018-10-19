@@ -29,9 +29,9 @@ def getState(inState):
     cnt = 0
     for row in range(0, len(inState), skip):
         for col in range(0, len(inState[row]), skip):
-            outState[cnt] = ((inState[row][col][0] >> 1) 
-                          + (inState[row][col][1] >> 2) 
-                          + (inState[row][col][2] >> 3))
+            outState[cnt] = (((inState[row][col][0] >> 2) << 12)
+                          + ((inState[row][col][1] >> 2) << 6)
+                          + ((inState[row][col][2] >> 2))) # to get RRRRRR GGGGGG BBBBBB
             cnt += 1
     
     return outState[:cnt]
@@ -93,11 +93,11 @@ def limit_cpu():
     p = psutil.Process(os.getpid())
     p.nice(10)
 
-envName = 'Assault-v0'
+envName = 'Boxing-v0'
 
 if options.curGen == 0:
     tmpEnv = gym.make(envName)
-    trainer = TpgTrainer(actions=range(tmpEnv.action_space.n), teamPopSizeInit=360)
+    trainer = TpgTrainer(actions=range(tmpEnv.action_space.n), teamPopSize=360)
     tmpEnv.close()
 else:
     with open('saved-model-sgp.pkl', 'rb') as f:
@@ -151,7 +151,7 @@ while True: # do generations with no end
         pickle.dump(trainer,f)
     # save best agent after every gen
     with open('best-agent-sgp.pkl','wb') as f:
-        pickle.dump(trainer.getBestAgent(tasks=tasks),f)
+        pickle.dump(trainer.getBestAgents(tasks=tasks)[0],f)
     
     print('Time Taken (Seconds): ' + str(time.time() - tStart))
     print('On Generation: ' + str(curGen))

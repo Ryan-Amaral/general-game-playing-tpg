@@ -33,9 +33,9 @@ def getState(inState):
     cnt = 0
     for row in range(0, len(inState), skip):
         for col in range(0, len(inState[row]), skip):
-            outState[cnt] = ((inState[row][col][0] >> 1) 
-                          + (inState[row][col][1] >> 2) 
-                          + (inState[row][col][2] >> 3))
+            outState[cnt] = (((inState[row][col][0] >> 2) << 12)
+                          + ((inState[row][col][1] >> 2) << 6)
+                          + ((inState[row][col][2] >> 2))) # to get RRRRRR GGGGGG BBBBBB
             cnt += 1
     
     return outState[:cnt]
