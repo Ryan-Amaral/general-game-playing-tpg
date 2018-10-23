@@ -20,6 +20,7 @@ parser = OptionParser()
 parser.add_option('-g', '--envgen', type='int', dest='envGen', default=0)
 parser.add_option('-t', '--timeStamp', type='str', dest='timeStamp', default=datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
 parser.add_option('-p', '--pop', type='int', dest='popSize', default=150)
+parser.add_option('-s', '--shrink', action='store_false', dest='envPopShrink', default=False)
 (options, args) = parser.parse_args()
 
 
@@ -35,7 +36,7 @@ def getState(inState):
         for col in range(0, len(inState[row]), skip):
             outState[cnt] = (((inState[row][col][0] >> 2) << 12)
                           + ((inState[row][col][1] >> 2) << 6)
-                          + ((inState[row][col][2] >> 2))) # to get RRRRRR GGGGGG BBBBBB
+                          + (inState[row][col][2] >> 2)) # to get RRRRRR GGGGGG BBBBBB
             cnt += 1
     
     return outState[:cnt]
@@ -160,7 +161,7 @@ envFitnesses = {}
 for envName in allEnvNames:
     envFitnesses[envName] = 0
 
-trainerFileName = 'tpg-trainer-ggp' + options.timeStamp + '.pkl'
+trainerFileName = 'tpg-trainer-ggp-' + options.timeStamp + '.pkl'
 
 if options.envGen > 0:
     with open(trainerFileName, 'rb') as f:
@@ -174,6 +175,11 @@ man = mp.Manager()
 
 envPopSize = 9 # number of envs to up in envNamePop
 envGapSize = 3 # number of envs to replace in envPop
+
+envPopShrink = options.envPopShrink # whether to start at all games, and shrink down
+
+if envPopShrink: # start it big
+    envPopSize = len(allEnvNames)
 
 numEpisodes = 5 # times to evaluate each env
 numFrames = 200 # number of frames per episode, to increase as time goes on
@@ -225,7 +231,7 @@ elif envGen >= 21 and envGen < 31:
 elif envGen >= 31:
     numFrames = 18000
     
-multiTest = False # whether to to big test on all games for best few agents
+multiTest = False # flag for whether to to big test on all games for best few agents
     
 while True: # do generations with no end
     envGen += 1

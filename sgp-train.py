@@ -150,8 +150,8 @@ while True: # do generations with no end
     with open('saved-model-sgp.pkl','wb') as f:
         pickle.dump(trainer,f)
     # save best agent after every gen
-    with open('best-agent-sgp.pkl','wb') as f:
-        pickle.dump(trainer.getBestAgents(tasks=tasks)[0],f)
+    #with open('best-agent-sgp.pkl','wb') as f:
+    #    pickle.dump(trainer.getBestAgents(tasks=tasks)[0],f)
     
     print('Time Taken (Seconds): ' + str(time.time() - tStart))
     print('On Generation: ' + str(curGen))
