@@ -259,6 +259,9 @@ while True: # do generations with no end
     for i in range(envGapSize): # replace gap size with random
         envNamesPop.append(sortedNewEnvFits[i][0])
         
+    if envPopShrink and envPopSize > 9:
+        envPopSize -= envGapSize
+        
     # reset env fitnesses
     for envName in allEnvNames:
         envFitnesses[envName] = 0
