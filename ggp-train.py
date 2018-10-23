@@ -20,7 +20,7 @@ parser = OptionParser()
 parser.add_option('-g', '--envgen', type='int', dest='envGen', default=0)
 parser.add_option('-t', '--timeStamp', type='str', dest='timeStamp', default=datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
 parser.add_option('-p', '--pop', type='int', dest='popSize', default=150)
-parser.add_option('-s', '--shrink', action='store_false', dest='envPopShrink', default=False)
+parser.add_option('-s', '--shrink', action='store_true', dest='envPopShrink', default=False)
 (options, args) = parser.parse_args()
 
 
