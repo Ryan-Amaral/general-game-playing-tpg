@@ -256,7 +256,7 @@ while True: # do generations with no end
     envNamesPop = [envFit[0] for envFit in sortedEnvFits[:envPopSize-envGapSize]] # keep top ones
     sortedNewEnvFits = sortedEnvFits[envPopSize:]
     random.shuffle(sortedNewEnvFits)
-    for i in range(envGapSize): # replace gap size with random
+    for i in range(min(envGapSize, len(sortedNewEnvFits))): # replace gap size with random
         envNamesPop.append(sortedNewEnvFits[i][0])
         
     if envPopShrink and envPopSize > 9:
