@@ -21,6 +21,7 @@ parser.add_option('-g', '--envgen', type='int', dest='envGen', default=0)
 parser.add_option('-t', '--timeStamp', type='str', dest='timeStamp', default=datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
 parser.add_option('-p', '--pop', type='int', dest='popSize', default=150)
 parser.add_option('-s', '--shrink', action='store_true', dest='envPopShrink', default=False)
+parser.add_option('-z', '--eps', type='int', dest='eps', default=9)
 (options, args) = parser.parse_args()
 
 
@@ -179,7 +180,10 @@ envGapSize = 3 # number of envs to replace in envPop
 envPopShrink = options.envPopShrink # whether to start at all games, and shrink down
 
 if envPopShrink: # start it big
-    envPopSize = len(allEnvNames)
+    if options.envGen > 0:
+        envPopSize = options.eps
+    else:
+        envPopSize = len(allEnvNames)
 
 numEpisodes = 5 # times to evaluate each env
 numFrames = 200 # number of frames per episode, to increase as time goes on
