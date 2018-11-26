@@ -14,17 +14,17 @@ Args:
 def runAgent(envName):
     env = gym.make(envName)
     scoreTotal = 0 # score accumulates over all episodes
-    for ep in range(20): # episode loop
+    for ep in range(10): # episode loop
         state = env.reset()
         scoreEp = 0
-        for i in range(1000): # frame loop
+        for i in range(18000): # frame loop
             state, reward, isDone, debug = env.step(env.action_space.sample())
             scoreEp += reward # accumulate reward in score
             if isDone:
                 break # end early if losing state
         scoreTotal += scoreEp
 
-    print(str(env.env) + ': ' + str(scoreTotal/20))
+    print(str(env.env) + ': ' + str(scoreTotal/10))
        
     env.close()
     
@@ -41,7 +41,7 @@ envNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'Freeway-v0','Frostbite-v0','Gravitar-v0','Hero-v0',
                'IceHockey-v0','Jamesbond-v0','Kangaroo-v0','Krull-v0',
                'KungFuMaster-v0','MsPacman-v0','PrivateEye-v0',
-               'RoadRunner-v0','Tennis-v0','TimePilot-v0',
+               'RoadRunner-v0','Skiing-v0','Tennis-v0','TimePilot-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
 
 processes = 2
