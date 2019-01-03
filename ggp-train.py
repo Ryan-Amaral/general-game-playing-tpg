@@ -25,22 +25,15 @@ parser.add_option('-z', '--eps', type='int', dest='eps', default=9)
 (options, args) = parser.parse_args()
 
 
-"""
-inState is (row x col x rgba) list. This converts it to a 1-D list. Because 
-that is what TPG uses.
-"""
+# To transform pixel matrix to a single vector.
 def getState(inState):
-    skip = 3
-    outState = [0]*(len(inState)*len(inState[0]))
-    cnt = 0
-    for row in range(0, len(inState), skip):
-        for col in range(0, len(inState[row]), skip):
-            outState[cnt] = (((inState[row][col][0] >> 2) << 12)
-                          + ((inState[row][col][1] >> 2) << 6)
-                          + (inState[row][col][2] >> 2)) # to get RRRRRR GGGGGG BBBBBB
-            cnt += 1
-    
-    return outState[:cnt]
+    # each row is all 1 color
+    rgbRows = np.reshape(inState,(len(inState[0])*len(inState), 3)).T
+
+    # add each with appropriate shifting
+    # get RRRRRRRR GGGGGGGG BBBBBBBB
+    return np.add(np.left_shift(rgbRows[0], 16),
+        np.add(np.left_shift(rgbRows[1], 8), rgbRows[2]))
 
 """
 Run each agent in this method for parallization.
@@ -71,7 +64,7 @@ def runAgent(args):
                     rep -= 1
                 continue
 
-            act = agent.act(getState(state), valActs=valActs)
+            act = agent.act(getState(np.array(state, dtype=np.int32)), valActs=valActs)
 
             # feedback from env
             state, reward, isDone, debug = env.step(act)
@@ -118,7 +111,7 @@ def runAgent2(args):
                     rep -= 1
                 continue
 
-            act = agent.act(getState(state), valActs=valActs)
+            act = agent.act(getState(np.array(state, dtype=np.int32)), valActs=valActs)
 
             # feedback from env
             state, reward, isDone, debug = env.step(act)
@@ -186,7 +179,7 @@ if envPopShrink: # start it big
         envPopSize = len(allEnvNames)
 
 numEpisodes = 5 # times to evaluate each env
-numFrames = 200 # number of frames per episode, to increase as time goes on
+numFrames = 500 # number of frames per episode, to increase as time goes on
 
 allScores = [] # track all scores each generation
 
@@ -225,13 +218,13 @@ with open(logFileMpName, 'a') as f:
     
 # get starting frames
 if envGen >= 6 and envGen < 11:
-    numFrames = 500
-elif envGen >= 11 and envGen < 16:
     numFrames = 1000
-elif envGen >= 16 and envGen < 21:
+elif envGen >= 11 and envGen < 16:
     numFrames = 2000
-elif envGen >= 21 and envGen < 31:
+elif envGen >= 16 and envGen < 21:
     numFrames = 5000
+elif envGen >= 21 and envGen < 31:
+    numFrames = 10000
 elif envGen >= 31:
     numFrames = 18000
     
@@ -241,16 +234,16 @@ while True: # do generations with no end
     envGen += 1
     if envGen == 6:
         todoEnvNames = list(allEnvNames)
-        numFrames = 500
+        numFrames = 1000
     elif envGen == 11:
         todoEnvNames = list(allEnvNames)
-        numFrames = 1000
+        numFrames = 2000
     elif envGen == 16:
         todoEnvNames = list(allEnvNames)
-        numFrames = 2000
+        numFrames = 5000
     elif envGen == 21:
         todoEnvNames = list(allEnvNames)
-        numFrames = 5000
+        numFrames = 10000
     elif envGen == 31:
         todoEnvNames = list(allEnvNames)
         numFrames = 18000
