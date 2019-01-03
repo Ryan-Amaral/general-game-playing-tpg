@@ -15,6 +15,7 @@ import pickle
 import operator
 import datetime
 from optparse import OptionParser
+import numpy as np
 
 parser = OptionParser()
 parser.add_option('-g', '--envgen', type='int', dest='envGen', default=0)
