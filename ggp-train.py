@@ -162,7 +162,7 @@ if options.envGen > 0:
     with open(trainerFileName, 'rb') as f:
         trainer = pickle.load(f)
 else:
-    trainer = TpgTrainer(actions=range(18), teamPopSizeInit=options.popSize)
+    trainer = TpgTrainer(actions=range(18), teamPopSizeInit=options.popSize, maxProgramSize=128)
 
 processes = 40
 pool = mp.Pool(processes=processes, initializer=limit_cpu, maxtasksperchild=5)
