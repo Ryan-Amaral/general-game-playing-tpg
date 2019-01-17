@@ -289,7 +289,7 @@ while True: # do generations with no end
     else:
         sortedEnvFits = sorted(envFitnesses.items(), key=lambda x: random.random())
     envNamesPop = [envFit[0] for envFit in sortedEnvFits[:envPopSize-envGapSize]] # keep top ones
-    sortedNewEnvFits = sortedEnvFits[envPopSize:]
+    sortedNewEnvFits = sortedEnvFits[envPopSize-envGapSize:]
     random.shuffle(sortedNewEnvFits)
     for i in range(min(envGapSize, len(sortedNewEnvFits))): # replace gap size with random
         envNamesPop.append(sortedNewEnvFits[i][0])
