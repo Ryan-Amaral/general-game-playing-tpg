@@ -363,7 +363,7 @@ while True: # do generations with no end
                     + str(len(trainer.rootTeams)) + '\n')
 
             # do multitest every 500 generations
-            if(trainer.curGen % 100 == 0):
+            if(trainer.curGen % 500 == 0):
                 multiTest()
 
             # update training frames for future generations
