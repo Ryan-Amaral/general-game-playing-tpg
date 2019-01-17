@@ -136,7 +136,7 @@ def runAgent(args):
     for rep in range(numRepeats): # episode loop
         state = env.reset()
         scoreEp = 0
-        numRandFrames = random.randint(1,min(30, numFrames))
+        numRandFrames = random.randint(1,min(20, numFrames))
         for i in range(numFrames): # frame loop
             if i < numRandFrames:
                 _, _, isDone, _ = env.step(env.action_space.sample())
@@ -181,7 +181,7 @@ def runAgent2(args):
     for rep in range(numRepeats): # episode loop
         state = env.reset()
         scoreEp = 0
-        numRandFrames = random.randint(1,min(30, numFrames))
+        numRandFrames = random.randint(1,min(20, numFrames))
         for i in range(numFrames): # frame loop
             if i < numRandFrames:
                 _, _, isDone, _ = env.step(env.action_space.sample())
