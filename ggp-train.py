@@ -368,7 +368,7 @@ while True: # do generations with no end
                     + str(scoreStats['max']) + ','
                     + str(scoreStats['average']) +  ','
                     + str(envFit) + ','
-                    + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0]))
+                    + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0])) + ','
                     + str(len(trainer.teams)) + ','
                     + str(len(trainer.rootTeams)) + '\n')
 
