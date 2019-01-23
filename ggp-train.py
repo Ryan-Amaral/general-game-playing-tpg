@@ -84,7 +84,7 @@ with open(logFilePosName, 'a') as f:
 
 logFileGenName = 'ggp-log-gens-' + options.timeStamp + '.txt'
 with open(logFileGenName, 'a') as f:
-    f.write('tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,popsize,totalTeams,totalRootTeams\n')
+    f.write('tpgGen,envGen,gamesPlayed,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,popsize,totalTeams,totalRootTeams\n')
 
 logFileMpName = 'ggp-log-multiperf-' + options.timeStamp + '.txt'
 with open(logFileMpName, 'a') as f:
@@ -96,15 +96,15 @@ with open(logFileMpName, 'a') as f:
     f.write(',visTotal\n')
 
 # get starting frames
-if trainer.curGen >= 200 and trainer.curGen < 400:
+if trainer.curGen >= 50 and trainer.curGen < 100:
     numFrames = 1000
-elif trainer.curGen >= 400 and trainer.curGen < 600:
+elif trainer.curGen >= 100 and trainer.curGen < 150:
     numFrames = 2000
-elif trainer.curGen >= 600 and trainer.curGen < 800:
+elif trainer.curGen >= 150 and trainer.curGen < 200:
     numFrames = 5000
-elif trainer.curGen >= 800 and trainer.curGen < 1000:
+elif trainer.curGen >= 200 and trainer.curGen < 250:
     numFrames = 10000
-elif trainer.curGen >= 1000:
+elif trainer.curGen >= 250:
     numFrames = 18000
 
 # To transform pixel matrix to a single vector.
@@ -279,6 +279,10 @@ tStart = time.time()
 
 envGen = options.envGen # continue onto a certain generation
 
+gamesPlayed = 0 # track total games attempted by tpg
+
+tasksToSkip = []
+
 # main training loop
 while True: # do generations with no end
     envGen += 1
@@ -312,8 +316,13 @@ while True: # do generations with no end
         # choose order of envs to run
         random.shuffle(envNamesPop)
 
+        agents = trainer.getAllAgents(skipTasks=tasksToSkip, noRef=True)
+
         # run each env per episode
         for envName in envNamesPop:
+            if envName not in tasksToSkip:
+                tasksToSkip.append(envName) # can skip now
+
             print('On to Game: ' + envName)
 
             scoreList = man.list() # reset score list
@@ -321,23 +330,22 @@ while True: # do generations with no end
             # run the agents in the env
             pool.map(runAgent,
                 [(agent, envName, scoreList, 1, numFrames)
-                for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
+                for agent in agents])
+
+            gamesPlayed += 1
 
             trainer.applyScores(scoreList)
-            trainer.evolve(fitShare=False, tasks=[envName], elitistTasks=allEnvNames)
 
-            # save model after every gen
-            with open(trainerFileName,'wb') as f:
-                pickle.dump(trainer,f)
+            scoreStats = trainer.getTaskScores(envName)
 
-            tpgBest = trainer.scoreStats['max']
-            tpgWorst = trainer.scoreStats['min']
+            tpgBest = scoreStats['max']
+            tpgWorst = scoreStats['min']
 
             # scores of tpg agents normalized between 0 and 1
             if tpgBest != tpgWorst:
-                tpgScores = [(score-tpgWorst)/(tpgBest-tpgWorst) for score in trainer.scoreStats['scores']]
+                tpgScores = [(score-tpgWorst)/(tpgBest-tpgWorst) for score in scoreStats['scores']]
             else:
-                tpgScores = [0]*len(trainer.scoreStats['scores'])
+                tpgScores = [0]*len(scoreStats['scores'])
 
             # calculate fitness of the environments for each agent
             tpgEnvFits = [(2*score/0.75)-(score/0.75)**2 for score in tpgScores]
@@ -352,28 +360,41 @@ while True: # do generations with no end
             with open(logFileGenName, 'a') as f:
                 f.write(str(trainer.curGen) + ','
                     + str(envGen) + ','
+                    + str(gamesPlayed) + ','
                     + str(numFrames) + ','
                     + envName + ','
-                    + str(trainer.scoreStats['min']) + ','
-                    + str(trainer.scoreStats['max']) + ','
-                    + str(trainer.scoreStats['average']) +  ','
+                    + str(scoreStats['min']) + ','
+                    + str(scoreStats['max']) + ','
+                    + str(scoreStats['average']) +  ','
                     + str(envFit) + ','
                     + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0]))
                     + str(len(trainer.teams)) + ','
                     + str(len(trainer.rootTeams)) + '\n')
 
-            # do multitest every 500 generations
-            if(trainer.curGen % 500 == 0):
-                multiTest()
+        trainer.evolve(fitMthd='combine', tasks=[envNamesPop], elitistTasks=allEnvNames)
 
-            # update training frames for future generations
-            if trainer.curGen == 200:
-                numFrames = 1000
-            elif trainer.curGen == 400:
-                numFrames = 2000
-            elif trainer.curGen == 600:
-                numFrames = 5000
-            elif trainer.curGen == 800:
-                numFrames = 10000
-            elif trainer.curGen == 1000:
-                numFrames = 18000
+        # save model after every gen
+        with open(trainerFileName,'wb') as f:
+            pickle.dump(trainer,f)
+
+        # do multitest every 60 generations
+        if(trainer.curGen % 60 == 0):
+            multiTest()
+
+        # update training frames for future generations
+        # and make tasks unskippable to start
+        if trainer.curGen == 50:
+            numFrames = 1000
+            tasksToSkip = []
+        elif trainer.curGen == 100:
+            numFrames = 2000
+            tasksToSkip = []
+        elif trainer.curGen == 150:
+            numFrames = 5000
+            tasksToSkip = []
+        elif trainer.curGen == 200:
+            numFrames = 10000
+            tasksToSkip = []
+        elif trainer.curGen == 250:
+            numFrames = 18000
+            tasksToSkip = []
