@@ -335,7 +335,7 @@ while True: # do generations with no end
             gamesPlayed += 1
 
             # update agents in trainer
-            agents = [Agent(team) for team in trainer.applyScores(scoreList)]
+            agents = [TpgAgent(team) for team in trainer.applyScores(scoreList)]
 
             scoreStats = trainer.getTaskScores(envName)
 
