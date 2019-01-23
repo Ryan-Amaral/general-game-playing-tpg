@@ -84,7 +84,7 @@ with open(logFilePosName, 'a') as f:
 
 logFileGenName = 'ggp-log-gens-' + options.timeStamp + '.txt'
 with open(logFileGenName, 'a') as f:
-    f.write('tpgGen,envGen,gamesPlayed,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,popsize,totalTeams,totalRootTeams\n')
+    f.write('tpgGen,envGen,gamesPlayed,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,popsize,totalTeams,totalRootTeams,champUid\n')
 
 logFileMpName = 'ggp-log-multiperf-' + options.timeStamp + '.txt'
 with open(logFileMpName, 'a') as f:
@@ -370,7 +370,8 @@ while True: # do generations with no end
                     + str(envFit) + ','
                     + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0])) + ','
                     + str(len(trainer.teams)) + ','
-                    + str(len(trainer.rootTeams)) + '\n')
+                    + str(len(trainer.rootTeams)) + ',',
+                    + str(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].getUid()) + '\n')
 
         trainer.evolve(fitMthd='combine', tasks=[envNamesPop], elitistTasks=allEnvNames)
 
