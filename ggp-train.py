@@ -59,7 +59,7 @@ envGapSize = 3 # number of envs to replace in envPop
 
 if options.envPopShrink: # start it on all games
     if options.envGen > 0: # through some generations so get right size
-        envPopSize = options.eps
+        envPopSize = options.envPopSize
     else: # just starting so set to all games
         envPopSize = len(allEnvNames)
 
@@ -373,7 +373,7 @@ while True: # do generations with no end
                     + str(len(trainer.rootTeams)) + ','
                     + str(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].getUid()) + '\n')
 
-        trainer.evolve(fitMthd='combine', tasks=[envNamesPop], elitistTasks=allEnvNames)
+        trainer.evolve(fitMthd='combine', tasks=envNamesPop, elitistTasks=allEnvNames)
 
         # save model after every gen
         with open(trainerFileName,'wb') as f:
