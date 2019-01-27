@@ -321,9 +321,9 @@ while True: # do generations with no end
         # run each env per episode
         for envName in envNamesPop:
             # remove some agents if they already did task
-            agents = [agent for agent in agents 
-                    if envName in tasksToSkip
-                        and envName not in agent.team.outcomes]
+            if envName in tasksToSkip:
+                agents = [agent for agent in agents 
+                        if envName not in agent.team.outcomes]
             
             # make current be a skippable task now
             if envName not in tasksToSkip:
