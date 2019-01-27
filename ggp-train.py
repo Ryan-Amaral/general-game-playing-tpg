@@ -316,10 +316,16 @@ while True: # do generations with no end
         # choose order of envs to run
         random.shuffle(envNamesPop)
 
-        agents = trainer.getAllAgents(skipTasks=tasksToSkip, noRef=True)
+        agents = trainer.getAllAgents(noRef=True)
 
         # run each env per episode
         for envName in envNamesPop:
+            # remove some agents if they already did task
+            agents = [agent for agent in agents 
+                    if envName in tasksToSkip
+                        and envName not in agent.team.outcomes]
+            
+            # make current be a skippable task now
             if envName not in tasksToSkip:
                 tasksToSkip.append(envName) # can skip now
 
@@ -334,7 +340,7 @@ while True: # do generations with no end
 
             gamesPlayed += 1
 
-            # update agents in trainer
+            # update agents in trainer, and get back updated agents
             agents = [TpgAgent(team) for team in trainer.applyScores(scoreList)]
 
             scoreStats = trainer.getTaskScores(envName)
