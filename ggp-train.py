@@ -310,7 +310,7 @@ while True: # do generations with no end
     if options.envPopShrink and envPopSize > 9:
         envPopSize -= envGapSize
 
-    envNamesPopSrt = sorted(list(allEnvNames))
+    envNamesPopSrt = sorted(list(envNamesPop))
 
     # reset env fitnesses
     for envName in allEnvNames:
