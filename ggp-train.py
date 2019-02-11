@@ -68,32 +68,40 @@ numFrames = 500 # number of frames per episode, to increase as time goes on
 
 # create log files and headers
 logFilePosName = 'ggp-log-pos-' + options.timeStamp + '.txt'
-with open(logFilePosName, 'a') as f:
-    f.write('tpgGen,envGen,trainFrames')
-    for envName in allEnvNames:
-        f.write(',1st-' + envName)
-    for envName in allEnvNames:
-        f.write(',2nd-' + envName)
-    for envName in allEnvNames:
-        f.write(',3rd-' + envName)
-    for envName in allEnvNames:
-        f.write(',4th-' + envName)
-    for envName in allEnvNames:
-        f.write(',5th-' + envName)
-    f.write('\n')
+if options.envGen == 0:
+    with open(logFilePosName, 'a') as f:
+        f.write('tpgGen,envGen,trainFrames')
+        for envName in allEnvNames:
+            f.write(',1st-' + envName)
+        for envName in allEnvNames:
+            f.write(',2nd-' + envName)
+        for envName in allEnvNames:
+            f.write(',3rd-' + envName)
+        for envName in allEnvNames:
+            f.write(',4th-' + envName)
+        for envName in allEnvNames:
+            f.write(',5th-' + envName)
+        f.write('\n')
 
 logFileGenName = 'ggp-log-gens-' + options.timeStamp + '.txt'
-with open(logFileGenName, 'a') as f:
-    f.write('tpgGen,envGen,gamesPlayed,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,popsize,totalTeams,totalRootTeams,champUid\n')
+if options.envGen == 0:
+    with open(logFileGenName, 'a') as f:
+        f.write('tpgGen,envGen,gamesPlayed,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,totalTeams,totalRootTeams,champUid\n')
+
+logFileFitName = 'ggp-log-fits-' + options.timeStamp + '.txt'
+if options.envGen == 0:
+    with open(logFileFitName, 'a') as f:
+        f.write('tpgGen,envGen,gamesPlayed,frames,envs,fitMin,fitMax,fitAvg,championSize,totalTeams,totalRootTeams,champUid\n')
 
 logFileMpName = 'ggp-log-multiperf-' + options.timeStamp + '.txt'
-with open(logFileMpName, 'a') as f:
-    f.write('tpgGen,envGen,trainFrames,teamId')
-    for envName in allEnvNames:
-        f.write(',score' + envName)
-    for envName in allEnvNames:
-        f.write(',vis' + envName)
-    f.write(',visTotal\n')
+if options.envGen == 0:
+    with open(logFileMpName, 'a') as f:
+        f.write('tpgGen,envGen,trainFrames,teamId')
+        for envName in allEnvNames:
+            f.write(',score' + envName)
+        for envName in allEnvNames:
+            f.write(',vis' + envName)
+        f.write(',visTotal\n')
 
 # get starting frames
 if trainer.curGen >= 50 and trainer.curGen < 100:
@@ -287,19 +295,22 @@ tasksToSkip = []
 while True: # do generations with no end
     envGen += 1
 
-    # choose the new env name pop
-    if options.virulence:
-        sortedEnvFits = sorted(envFitnesses.items(), key=operator.itemgetter(1), reverse=True)
+    # fill in new environmant population
+    if trainer.curGen == 0:
+        # just starting, take randomly from all envs
+        envNamesPop = allEnvNames[:envPopSize]
     else:
-        sortedEnvFits = sorted(envFitnesses.items(), key=lambda x: random.random())
-    envNamesPop = [envFit[0] for envFit in sortedEnvFits[:envPopSize-envGapSize]] # keep top ones
-    sortedNewEnvFits = sortedEnvFits[envPopSize-envGapSize:]
-    random.shuffle(sortedNewEnvFits)
-    for i in range(min(envGapSize, len(sortedNewEnvFits))): # replace gap size with random
-        envNamesPop.append(sortedNewEnvFits[i][0])
+        # take top envs from trainer
+        envNamesPop = trainer.topTeamTasks[:envPopSize - envGapSize]
+        # fill in gap size
+        allEnvNamesCp = list(allEnvNames)
+        random.shuffle(allEnvNamesCp)
+        envNamesPop.extend([env for env in allEnvNamesCp if env not in envNamesPop][:envGapSize])
 
     if options.envPopShrink and envPopSize > 9:
         envPopSize -= envGapSize
+
+    envNamesPopSrt = sorted(list(allEnvNames))
 
     # reset env fitnesses
     for envName in allEnvNames:
@@ -322,9 +333,9 @@ while True: # do generations with no end
         for envName in envNamesPop:
             # remove some agents if they already did task
             if envName in tasksToSkip:
-                agents = [agent for agent in agents 
+                agents = [agent for agent in agents
                         if envName not in agent.team.outcomes]
-            
+
             # make current be a skippable task now
             if envName not in tasksToSkip:
                 tasksToSkip.append(envName) # can skip now
@@ -380,6 +391,21 @@ while True: # do generations with no end
                     + str(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].getUid()) + '\n')
 
         trainer.evolve(fitMthd='combine', tasks=envNamesPop, elitistTasks=allEnvNames)
+
+        # report to log
+        with open(logFileFitName, 'a') as f:
+            f.write(str(trainer.curGen) + ','
+                + str(envGen) + ','
+                + str(gamesPlayed) + ','
+                + str(numFrames) + ','
+                + '/'.join(envNamesPopSrt) + ','
+                + str(trainer.scoreStats['min']) + ','
+                + str(trainer.scoreStats['max']) + ','
+                + str(trainer.scoreStats['average']) +  ','
+                + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0])) + ','
+                + str(len(trainer.teams)) + ','
+                + str(len(trainer.rootTeams)) + ','
+                + str(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].getUid()) + '\n')
 
         # save model after every gen
         with open(trainerFileName,'wb') as f:
