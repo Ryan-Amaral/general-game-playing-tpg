@@ -1,0 +1,1 @@
+tpgGen,envGen,gamesPlayed,frames,envs,fitMin,fitMax,fitAvg,championSize,totalTeams,totalRootTeams,champUid
