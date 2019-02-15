@@ -1,0 +1,2 @@
+tpgGen,envGen,gamesPlayed,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,totalTeams,totalRootTeams,champUid
+0,1,1,500,Boxing-v0,-64.0,8.0,-12.364,0.9645528120713264,6,750,750,255

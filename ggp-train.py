@@ -197,7 +197,8 @@ def runAgent2(args):
                     rep -= 1
                 continue
 
-            act = agent.act(getState(np.array(state, dtype=np.int32)), valActs=valActs)
+            act = agent.act(getState(np.array(state, dtype=np.int32)), valActs=valActs,
+                    vizd=True)
 
             # feedback from env
             state, reward, isDone, debug = env.step(act)
