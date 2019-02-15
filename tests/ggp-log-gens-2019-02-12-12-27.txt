@@ -1,3 +1,0 @@
-tpgGen,envGen,gamesPlayed,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,totalTeams,totalRootTeams,champUid
-0,1,1,500,Boxing-v0,-65.0,12.0,-12.462666666666667,0.9606134817563378,6,750,750,175
-0,1,2,500,FishingDerby-v0,-24.0,-6.0,-18.488,0.6165889346136225,6,750,750,78

@@ -1,1 +1,0 @@
-tpgGen,envGen,frames,envName,tpgMin,tpgMax,tpgAvg,envFit,championSize,popsize,totalTeams,totalRootTeams
