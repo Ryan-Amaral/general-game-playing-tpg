@@ -70,3 +70,6 @@ def runAgent(args):
 def limit_cpu():
     p = psutil.Process(os.getpid())
     p.nice(0)
+
+def champEval():
+    pass
