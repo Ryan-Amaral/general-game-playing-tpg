@@ -122,21 +122,21 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
                     + str(trainer.getBestAgents(tasks=[envName],
                                 amount=1,topn=1)[0].getUid()) + '\n')
 
-        # do evolution after all envs played # update combine in tpg first!!!!!!!!!!!!!!!!!!!!!!!!!
+        # do evolution after all envs played
         trainer.evolve(fitMthd='combine', tasks=envNames, elitistTasks=envNames)
 
         # report generational fitness results
-        ### Must fix getting top agent!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        bestTeam = trainer.getBestTeams(tasks=[envName])[0]
         with open(lfFName, 'a') as f:
             f.write(str(trainer.curGen) + ','
                 + '/'.join(envNamesSrt) + ','
                 + str(trainer.scoreStats['min']) + ','
                 + str(trainer.scoreStats['max']) + ','
                 + str(trainer.scoreStats['average']) +  ','
-                + str(len(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].team.getRootTeamGraph()[0])) + ','
+                + str(len(bestTeam.getRootTeamGraph()[0])) + ','
+                + str(bestTeam.getUid()) + ','
                 + str(len(trainer.teams)) + ','
-                + str(len(trainer.rootTeams)) + ','
-                + str(trainer.getBestAgents(tasks=[envName],amount=1,topn=1)[0].getUid()) + '\n')
+                + str(len(trainer.rootTeams)) + '\n')
 
         # save model after every gen
         with open(trainerFile,'wb') as f:
