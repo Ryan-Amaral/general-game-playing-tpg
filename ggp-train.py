@@ -99,16 +99,15 @@ will see all of the games before evolution will occur.
 def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFileName,
         pool, man, trainFrames=18000, testFrames=18000, trainEpisodes=1, testEpisodes=10):
 
-    tstart = time.time()
-
     # create TPG
     trainer = TpgTrainer(actions=range(18), teamPopSize=popSize, maxProgramSize=128)
+
+    tstart = time.time()
 
     envNamesSrt = sorted(list(envNames)) # for reporting envs played
 
     while True: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
-        random.shuffle(envNames) # I don't think this actually matters
         for envName in envNames: # train on each env
             print('Playing Game: ' + envName)
 
@@ -152,7 +151,6 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
                 + str(len(trainer.populations[None].rootTeams)) + '\n')
 
         # save model after every gen
-        # change trainer populations to classes instead of lambda to fix
         with open(trainerFileName,'wb') as f:
             pickle.dump(trainer,f)
 
