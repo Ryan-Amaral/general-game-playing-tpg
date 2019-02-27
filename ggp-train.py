@@ -24,7 +24,7 @@ def separgs(option, opt, value, parser):
 
 parser = OptionParser()
 parser.add_option('-n', '--ngames', type='int', dest='numGames', default=16) # number of games to play
-parser.add_option('-g', '--games', type='string', callback=separgs, dest='games') # specify any games
+parser.add_option('--games', type='string', action='callback', callback=separgs, dest='games') # specify any games
 parser.add_option('-r', '--randg', action='store_true', dest='randomGames', default=False) # choose games randomly
 parser.add_option('-p', '--pop', type='int', dest='popSize', default=600) # starting tpg population size
 parser.add_option('-m', '--popMax', type='int', dest='popSizeMax', default=600) # population size to work up to
@@ -49,12 +49,14 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'KungFuMaster-v0','MsPacman-v0','PrivateEye-v0',
                'RoadRunner-v0','Skiing-v0','Tennis-v0','TimePilot-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
-
-# shuffle if random and take certain number of games
-if options.randomGames:
-    random.shuffle(allEnvNames)
-allEnvNames = sorted(allEnvNames[:options.numGames])
-allEnvNames = ['Assault-v0', 'Boxing-v0'] # hardcode in games to use
+if options.games is not None:
+    allEnvNames = sorted(options.games)
+else:
+    # shuffle if random and take certain number of games
+    if options.randomGames:
+        random.shuffle(allEnvNames)
+    allEnvNames = sorted(allEnvNames[:options.numGames])
+    #allEnvNames = ['Assault-v0', 'Boxing-v0'] # hardcode in games to use
 
 print('All Games: ' + str(allEnvNames))
 
