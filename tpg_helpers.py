@@ -71,5 +71,42 @@ def limit_cpu():
     p = psutil.Process(os.getpid())
     p.nice(0)
 
-def champEval():
-    pass
+def champEval(envNames, trainer, lfCName, pool, man, popName=None, numAgents=5, frames=18000, eps=10):
+    print('Evaluating agents on all envs.')
+    agents = trainer.getBestAgents(tasks=envNames, popName=popName)[:numAgents]
+
+    agentScores = {} # save scores of agents here
+    allVisTrack = {} # save indexed screen space here
+    for tId in [agent.team.uid for agent in agents]:
+        agentScores[tId] = {}
+        allVisTrack[tId] = {}
+    for envName in envNames:
+        print('On game: ' + envName)
+        scoreList = man.list() # reset score list
+        visTrack = man.dict()
+        pool.map(runAgent,
+            [(agent, envName, scoreList, eps, frames, visTrack)
+            for agent in agents])
+        # put scores in dict for env
+        for score in scoreList:
+            agentScores[score[0]][envName] = score[1][envName]
+        for uid in visTrack.keys():
+            allVisTrack[uid][envName] = np.array(visTrack[uid])
+
+    for uid in allVisTrack:
+        allVisTrack[uid]['visTotal'] = np.zeros(len(allVisTrack[uid][envNames[0]]))
+        for envName in envNames:
+            for i in range(len(allVisTrack[uid][envName])):
+                minlen = min(len(allVisTrack[uid]['visTotal']), len(allVisTrack[uid][envName]))
+                allVisTrack[uid]['visTotal'] = np.logical_or(allVisTrack[uid]['visTotal'][:minlen],
+                        allVisTrack[uid][envName][:minlen])
+
+    with open(lfCName, 'a') as f:
+        for uid in agentScores:
+            f.write(str(trainer.populations[popName].curGen) + ','
+                    + str(uid))
+            for envName in envNames:
+                f.write(',' + str(agentScores[uid][envName]))
+            for envName in envNames:
+                f.write(',' + str(np.count_nonzero(allVisTrack[uid][envName]) / len(allVisTrack[uid][envName])))
+            f.write(',' + str(np.count_nonzero(allVisTrack[uid]['visTotal']) / len(allVisTrack[uid]['visTotal'])) + '\n')

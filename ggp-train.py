@@ -47,7 +47,8 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
 # shuffle if random and take certain number of games
 if options.randomGames:
     random.shuffle(allEnvNames)
-allEnvNames = allEnvNames[:options.numGames]
+allEnvNames = sorted(allEnvNames[:options.numGames])
+#allEnvNames = ['Centipede-v0', 'Kangaroo-v0'] # hardcode in games to use
 
 print('All Games: ' + str(allEnvNames))
 
@@ -88,7 +89,7 @@ Method for training TPG on all games at once. Each individual in the single popu
 will see all of the games before evolution will occur.
 """
 def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFileName,
-        pool, man, trainFrames=18000, testFrames=18000, trainEpisodes=1, evalEpisodes=10):
+        pool, man, trainFrames=5000, testFrames=18000, trainEpisodes=1, testEpisodes=10):
     # create TPG
     trainer = TpgTrainer(actions=range(18), teamPopSize=popSize, maxProgramSize=128)
 
@@ -139,12 +140,12 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
 
         # save model after every gen
         # change trainer populations to classes instead of lambda to fix
-        #with open(trainerFileName,'wb') as f:
-        #    pickle.dump(trainer,f)
+        with open(trainerFileName,'wb') as f:
+            pickle.dump(trainer,f)
 
         # every 50 generations evaluate top agents on all games
-        #if trainer.populations[None].curGen % 50 == 0:
-        #    champEval()
+        if trainer.populations[None].curGen % 50 == 0:
+            champEval(envNamesSrt, trainer, lfCName, pool, man, frames=testFrames, eps=testEpisodes)
 
 
 """
