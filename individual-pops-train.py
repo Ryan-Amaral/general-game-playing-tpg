@@ -12,6 +12,9 @@ import multiprocessing as mp
 import pickle
 import time
 
+pool = mp.Pool(processes=7, initializer=limit_cpu, maxtasksperchild=5)
+man = mp.Manager() # manager for shared memory lists
+
 allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'BattleZone-v0','Bowling-v0','Boxing-v0','Centipede-v0']
 
@@ -28,7 +31,7 @@ logName = 'sgp-log-8-pops.txt'
 with open(logName, 'a') as f:
     f.write('tpgGen,hoursElapsed,envName,tpgMin,tpgMax,tpgAvg,eliteSize,eliteUid\n')
 
-while True: # train indefinately
+while trainer.curGen < 200: # 200 generations at each game
     print('TPG Gen: ' + str(trainer.populations[envName].curGen))
     for envName in allEnvNames: # train on each env
         print('Playing Game: ' + envName)
@@ -37,7 +40,7 @@ while True: # train indefinately
 
         # run all agents on env
         pool.map(runAgent,
-            [(agent, envName, scoreList, trainEpisodes, trainFrames, None)
+            [(agent, envName, scoreList, 1, 18000, None)
                 for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True,
                         popName=envName)])
 
@@ -59,6 +62,6 @@ while True: # train indefinately
         # do evolution on each env played
         trainer.evolve(fitMthd='single', tasks=[envName], elitistTasks=[envName], popName=envName)
 
-# save model at end
-with open('trainer-8-pops.pkl','wb') as f:
-    pickle.dump(trainer,f)
+    # update most recent model results
+    with open('trainer-8-pops.pkl','wb') as f:
+        pickle.dump(trainer,f)
