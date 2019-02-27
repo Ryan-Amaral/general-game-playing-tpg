@@ -13,18 +13,24 @@ import random
 import datetime
 import multiprocessing as mp
 import pickle
+import time
 
 """
 Command line arguments.
 """
 
+def separgs(option, opt, value, parser):
+    setattr(parser.values, option.dest, value.split(','))
+
 parser = OptionParser()
-parser.add_option('-g', '--games', type='int', dest='numGames', default=16) # number of games to play
+parser.add_option('-n', '--ngames', type='int', dest='numGames', default=16) # number of games to play
+parser.add_option('-g', '--games', type='string', callback=separgs, dest='games') # specify any games
 parser.add_option('-r', '--randg', action='store_true', dest='randomGames', default=False) # choose games randomly
 parser.add_option('-p', '--pop', type='int', dest='popSize', default=600) # starting tpg population size
 parser.add_option('-m', '--popMax', type='int', dest='popSizeMax', default=600) # population size to work up to
 parser.add_option('-w', '--workers', type='int', dest='workers', default=3) # concurrent workers for parallization
 parser.add_option('-t', '--type', type='int', dest='trainType', default=0) # method of training
+
 # trainType is 0 for 'all at once', 1 for 'merge', 2 for 'gradual merge'.
 
 (options, args) = parser.parse_args()
@@ -48,7 +54,7 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
 if options.randomGames:
     random.shuffle(allEnvNames)
 allEnvNames = sorted(allEnvNames[:options.numGames])
-#allEnvNames = ['Centipede-v0', 'Kangaroo-v0'] # hardcode in games to use
+allEnvNames = ['Assault-v0', 'Boxing-v0'] # hardcode in games to use
 
 print('All Games: ' + str(allEnvNames))
 
@@ -64,12 +70,12 @@ timeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
 # game score summary of each game in each generation
 logFileGameScoresName = 'ggp-log-gamescores-' + timeStamp + '.txt'
 with open(logFileGameScoresName, 'a') as f:
-    f.write('tpgGen,envName,tpgMin,tpgMax,tpgAvg,eliteSize,eliteUid\n')
+    f.write('tpgGen,hoursElapsed,envName,tpgMin,tpgMax,tpgAvg,eliteSize,eliteUid\n')
 
 # every few generations evaluate top overall few teams on all titles
 logFileChampionsName = 'ggp-log-champions-' + timeStamp + '.txt'
 with open(logFileChampionsName, 'a') as f:
-    f.write('tpgGen,teamId')
+    f.write('tpgGen,hoursElapsed,teamId')
     for envName in allEnvNames:
         f.write(',score' + envName)
     for envName in allEnvNames:
@@ -79,7 +85,7 @@ with open(logFileChampionsName, 'a') as f:
 # population fitness summary each generation
 logFileFitnessName = 'ggp-log-fitness-' + timeStamp + '.txt'
 with open(logFileFitnessName, 'a') as f:
-    f.write('tpgGen,envs,fitMin,fitMax,fitAvg,champSize,champUid,totalTeams,totalRootTeams\n')
+    f.write('tpgGen,hoursElapsed,envs,fitMin,fitMax,fitAvg,champSize,champUid,totalTeams,totalRootTeams\n')
 
 # and create file to save TPG
 trainerFileName = 'tpg-trainer-' + timeStamp + '.pkl'
@@ -89,7 +95,10 @@ Method for training TPG on all games at once. Each individual in the single popu
 will see all of the games before evolution will occur.
 """
 def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFileName,
-        pool, man, trainFrames=5000, testFrames=18000, trainEpisodes=1, testEpisodes=10):
+        pool, man, trainFrames=18000, testFrames=18000, trainEpisodes=1, testEpisodes=10):
+
+    tstart = time.time()
+
     # create TPG
     trainer = TpgTrainer(actions=range(18), teamPopSize=popSize, maxProgramSize=128)
 
@@ -115,6 +124,7 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
             bestTeam = trainer.getBestTeams(tasks=[envName])[0]
             with open(lfGSName, 'a') as f:
                 f.write(str(trainer.populations[None].curGen) + ','
+                    + str((time.time()-tstart)/3600) + ','
                     + envName + ','
                     + str(scoreStats['min']) + ','
                     + str(scoreStats['max']) + ','
@@ -129,6 +139,7 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
         bestTeam = trainer.getBestTeams(tasks=[envName])[0]
         with open(lfFName, 'a') as f:
             f.write(str(trainer.populations[None].curGen) + ','
+                + str((time.time()-tstart)/3600) + ','
                 + '/'.join(envNamesSrt) + ','
                 + str(trainer.populations[None].scoreStats['min']) + ','
                 + str(trainer.populations[None].scoreStats['max']) + ','
@@ -144,8 +155,8 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
             pickle.dump(trainer,f)
 
         # every 50 generations evaluate top agents on all games
-        if trainer.populations[None].curGen % 50 == 0:
-            champEval(envNamesSrt, trainer, lfCName, pool, man, frames=testFrames, eps=testEpisodes)
+        if trainer.populations[None].curGen % 5 == 0:
+            champEval(envNamesSrt, trainer, lfCName, pool, man, tstart, frames=testFrames, eps=testEpisodes)
 
 
 """

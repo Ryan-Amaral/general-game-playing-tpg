@@ -4,6 +4,7 @@ import gym.spaces
 import psutil
 import os
 import random
+import time
 
 # To transform pixel matrix to a single vector.
 def getState(inState):
@@ -71,7 +72,7 @@ def limit_cpu():
     p = psutil.Process(os.getpid())
     p.nice(0)
 
-def champEval(envNames, trainer, lfCName, pool, man, popName=None, numAgents=5, frames=18000, eps=10):
+def champEval(envNames, trainer, lfCName, pool, man, tstart, popName=None, numAgents=5, frames=18000, eps=10):
     print('Evaluating agents on all envs.')
     agents = trainer.getBestAgents(tasks=envNames, popName=popName)[:numAgents]
 
@@ -84,6 +85,7 @@ def champEval(envNames, trainer, lfCName, pool, man, popName=None, numAgents=5, 
         print('On game: ' + envName)
         scoreList = man.list() # reset score list
         visTrack = man.dict()
+        
         pool.map(runAgent,
             [(agent, envName, scoreList, eps, frames, visTrack)
             for agent in agents])
@@ -97,6 +99,7 @@ def champEval(envNames, trainer, lfCName, pool, man, popName=None, numAgents=5, 
         allVisTrack[uid]['visTotal'] = np.zeros(len(allVisTrack[uid][envNames[0]]))
         for envName in envNames:
             for i in range(len(allVisTrack[uid][envName])):
+                # visTotal may be slightly off due to environments having different dimensions
                 minlen = min(len(allVisTrack[uid]['visTotal']), len(allVisTrack[uid][envName]))
                 allVisTrack[uid]['visTotal'] = np.logical_or(allVisTrack[uid]['visTotal'][:minlen],
                         allVisTrack[uid][envName][:minlen])
@@ -104,6 +107,7 @@ def champEval(envNames, trainer, lfCName, pool, man, popName=None, numAgents=5, 
     with open(lfCName, 'a') as f:
         for uid in agentScores:
             f.write(str(trainer.populations[popName].curGen) + ','
+                    + str((time.time()-tstart)/3600) + ','
                     + str(uid))
             for envName in envNames:
                 f.write(',' + str(agentScores[uid][envName]))
