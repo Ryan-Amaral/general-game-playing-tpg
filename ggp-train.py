@@ -60,7 +60,7 @@ else:
 
 print('All Games: ' + str(allEnvNames))
 
-pool = mp.Pool(processes=options.workers, initializer=limit_cpu, maxtasksperchild=5)
+pool = mp.Pool(processes=options.workers, initializer=limit_cpu, maxtasksperchild=1)
 man = mp.Manager() # manager for shared memory lists
 
 """
@@ -155,7 +155,7 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
             pickle.dump(trainer,f)
 
         # every 50 generations evaluate top agents on all games
-        if trainer.populations[None].curGen % 5 == 0:
+        if trainer.populations[None].curGen % 50 == 0:
             champEval(envNamesSrt, trainer, lfCName, pool, man, tstart, frames=testFrames, eps=testEpisodes)
 
 
