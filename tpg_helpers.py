@@ -38,10 +38,10 @@ def runAgent(args):
     for rep in range(numRepeats): # episode loop
         state = env.reset()
         scoreEp = 0
-        numRandFrames = random.randint(5,min(20, numFrames))
+        numNoopFrames = random.randint(0,min(30, numFrames))
         for i in range(numFrames): # frame loop
-            if i < numRandFrames:
-                _, _, isDone, _ = env.step(env.action_space.sample())
+            if i < numNoopFrames:
+                _, _, isDone, _ = env.step(0) # do nothing
                 if isDone: # don't count it if lose on random steps
                     rep -= 1
                 continue
@@ -85,7 +85,7 @@ def champEval(envNames, trainer, lfCName, pool, man, tstart, popName=None, numAg
         print('On game: ' + envName)
         scoreList = man.list() # reset score list
         visTrack = man.dict()
-        
+
         pool.map(runAgent,
             [(agent, envName, scoreList, eps, frames, visTrack)
             for agent in agents])

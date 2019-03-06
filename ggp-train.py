@@ -97,7 +97,7 @@ Method for training TPG on all games at once. Each individual in the single popu
 will see all of the games before evolution will occur.
 """
 def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFileName,
-        pool, man, trainFrames=18000, testFrames=18000, trainEpisodes=1, testEpisodes=10):
+        pool, man, trainFrames=18000, testFrames=18000, trainEpisodes=5, testEpisodes=30):
 
     # create TPG
     trainer = TpgTrainer(actions=range(18), teamPopSize=popSize, maxProgramSize=128)
