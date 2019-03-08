@@ -26,10 +26,15 @@ parser = OptionParser()
 parser.add_option('-n', '--ngames', type='int', dest='numGames', default=16) # number of games to play
 parser.add_option('--games', type='string', action='callback', callback=separgs, dest='games') # specify any games
 parser.add_option('-r', '--randg', action='store_true', dest='randomGames', default=False) # choose games randomly
-parser.add_option('-p', '--pop', type='int', dest='popSize', default=600) # starting tpg population size
-parser.add_option('-m', '--popMax', type='int', dest='popSizeMax', default=600) # population size to work up to
+parser.add_option('-p', '--pop', type='int', dest='popSize', default=360) # starting tpg population size
+parser.add_option('-m', '--popMax', type='int', dest='popSizeMax', default=360) # population size to work up to
 parser.add_option('-w', '--workers', type='int', dest='workers', default=3) # concurrent workers for parallization
 parser.add_option('-t', '--type', type='int', dest='trainType', default=0) # method of training
+parser.add_option('--trainFrames', type='int', dest='trainFrames', default=18000) # number of frames to train on
+parser.add_option('--testFrames', type='int', dest='testFrames', default=18000) # number of frames to test on
+parser.add_option('--trainEps', type='int', dest='trainEps', default=3) # number of episodes to train on
+parser.add_option('--testEps', type='int', dest='testEps', default=10) # number of episodes to train on
+parser.add_option('-c', '--champEvalGen', type=int, dest='champEvalGen', default=50) # every how many generations to do champ eval
 
 # trainType is 0 for 'all at once', 1 for 'merge', 2 for 'gradual merge'.
 
@@ -96,26 +101,24 @@ trainerFileName = 'tpg-trainer-' + timeStamp + '.pkl'
 Method for training TPG on all games at once. Each individual in the single population
 will see all of the games before evolution will occur.
 """
-def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFileName,
-        pool, man, trainFrames=18000, testFrames=18000, trainEpisodes=3, testEpisodes=10):
+def ggpTrainAllAtOnce():
 
     # create TPG
-    trainer = TpgTrainer(actions=range(18), teamPopSize=popSize, rTeamPopSize=popSize, maxProgramSize=128)
+    trainer = TpgTrainer(actions=range(18), teamPopSize=options.popSize,
+                    rTeamPopSize=options.popSize, maxProgramSize=128)
 
-    tstart = time.time()
-
-    envNamesSrt = sorted(list(envNames)) # for reporting envs played
+    envNamesSrt = sorted(list(allEnvNames)) # for reporting envs played
 
     while True: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
-        for envName in envNames: # train on each env
+        for envName in allEnvNames: # train on each env
             print('Playing Game: ' + envName)
 
             scoreList = man.list()
 
             # run all agents on env
             pool.map(runAgent,
-                [(agent, envName, scoreList, trainEpisodes, trainFrames, None)
+                [(agent, envName, scoreList, options.trainEps, options.trainFrames, None)
                     for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
 
             trainer.applyScores(scoreList)
@@ -123,7 +126,7 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
             # report curEnv results to log
             scoreStats = trainer.getTaskScores(envName)
             bestTeam = trainer.getBestTeams(tasks=[envName])[0]
-            with open(lfGSName, 'a') as f:
+            with open(logFileGameScoresName, 'a') as f:
                 f.write(str(trainer.populations[None].curGen) + ','
                     + str((time.time()-tstart)/3600) + ','
                     + envName + ','
@@ -134,11 +137,11 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
                     + str(bestTeam.uid) + '\n')
 
         # do evolution after all envs played
-        trainer.evolve(fitMthd='combine', tasks=envNames, elitistTasks=envNames)
+        trainer.evolve(fitMthd='combine', tasks=allEnvNames, elitistTasks=allEnvNames)
 
         # report generational fitness results
-        bestTeam = trainer.getBestTeams(tasks=[envName])[0]
-        with open(lfFName, 'a') as f:
+        bestTeam = trainer.getBestTeams(tasks=envNamesSrt)[0]
+        with open(logFileFitnessName, 'a') as f:
             f.write(str(trainer.populations[None].curGen) + ','
                 + str((time.time()-tstart)/3600) + ','
                 + '/'.join(envNamesSrt) + ','
@@ -155,8 +158,9 @@ def ggpTrainAllAtOnce(envNames, popSize, lfGSName, lfCName, lfFName, trainerFile
             pickle.dump(trainer,f)
 
         # every 50 generations evaluate top agents on all games
-        if trainer.populations[None].curGen % 50 == 0:
-            champEval(envNamesSrt, trainer, lfCName, pool, man, tstart, frames=testFrames, eps=testEpisodes)
+        if trainer.populations[None].curGen % option.champEvalGen == 0:
+            champEval(envNamesSrt, trainer, logFileChampionsName, pool, man,
+                        tstart, frames=options.testFrames, eps=options.testEps)
 
 
 """
@@ -179,13 +183,11 @@ def ggpTrainGradualMerge(envNames, popSize, popSizeMax, lfGSName, lfCName, lfFNa
 """
 Run the training unending.
 """
+tstart = time.time() # start timing
 
 if options.trainType == 0:
-    ggpTrainAllAtOnce(allEnvNames, options.popSize, logFileGameScoresName,
-        logFileChampionsName, logFileFitnessName, trainerFileName, pool, man)
+    ggpTrainAllAtOnce()
 elif options.trainType == 1:
-    ggpTrainMerge(allEnvNames, options.popSize, options.popSizeMax, logFileGameScoresName,
-        logFileChampionsName, logFileFitnessName, pool, man)
+    ggpTrainMerge()
 else:
-    ggpTrainGradualMerge(allEnvNames, options.popSize, options.popSizeMax, logFileGameScoresName,
-        logFileChampionsName, logFileFitnessName, pool, man)
+    ggpTrainGradualMerge()
