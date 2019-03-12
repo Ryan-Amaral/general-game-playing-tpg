@@ -23,18 +23,32 @@ def separgs(option, opt, value, parser):
     setattr(parser.values, option.dest, value.split(','))
 
 parser = OptionParser()
-parser.add_option('-n', '--ngames', type='int', dest='numGames', default=16) # number of games to play
-parser.add_option('--games', type='string', action='callback', callback=separgs, dest='games') # specify any games
-parser.add_option('-r', '--randg', action='store_true', dest='randomGames', default=False) # choose games randomly
-parser.add_option('-p', '--pop', type='int', dest='popSize', default=360) # starting tpg population size
-parser.add_option('-m', '--popMax', type='int', dest='popSizeMax', default=360) # population size to work up to
-parser.add_option('-w', '--workers', type='int', dest='workers', default=3) # concurrent workers for parallization
-parser.add_option('-t', '--type', type='int', dest='trainType', default=0) # method of training
-parser.add_option('--trainFrames', type='int', dest='trainFrames', default=18000) # number of frames to train on
-parser.add_option('--testFrames', type='int', dest='testFrames', default=18000) # number of frames to test on
-parser.add_option('--trainEps', type='int', dest='trainEps', default=3) # number of episodes to train on
-parser.add_option('--testEps', type='int', dest='testEps', default=10) # number of episodes to train on
-parser.add_option('-c', '--champEvalGen', type=int, dest='champEvalGen', default=50) # every how many generations to do champ eval
+# number of games to play
+parser.add_option('-n', '--ngames', type='int', dest='numGames', default=16)
+# specify any games
+parser.add_option('--games', type='string', action='callback', callback=separgs, dest='games')
+# choose games randomly
+parser.add_option('-r', '--randg', action='store_true', dest='randomGames', default=False)
+# starting tpg population size
+parser.add_option('-p', '--pop', type='int', dest='popSize', default=360)
+# population size to work up to
+parser.add_option('-m', '--popMax', type='int', dest='popSizeMax', default=360)
+# concurrent workers for parallization
+parser.add_option('-w', '--workers', type='int', dest='workers', default=3)
+# method of training
+parser.add_option('-t', '--type', type='int', dest='trainType', default=0)
+# number of frames to train on
+parser.add_option('--trainFrames', type='int', dest='trainFrames', default=18000)
+# number of frames to test on
+parser.add_option('--testFrames', type='int', dest='testFrames', default=18000)
+# number of episodes to train on
+parser.add_option('--trainEps', type='int', dest='trainEps', default=3)
+# number of episodes to train on
+parser.add_option('--testEps', type='int', dest='testEps', default=10)
+# every how many generations to do champ eval
+parser.add_option('-c', '--champEvalGen', type='int', dest='champEvalGen', default=50)
+# file for trainer with pretrained populations
+parser.add_option('--popsFile', type='string', dest='popsFile', default=None)
 
 # trainType is 0 for 'all at once', 1 for 'merge', 2 for 'gradual merge'.
 
@@ -54,6 +68,7 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'KungFuMaster-v0','MsPacman-v0','PrivateEye-v0',
                'RoadRunner-v0','Skiing-v0','Tennis-v0','TimePilot-v0',
                'UpNDown-v0','Venture-v0','WizardOfWor-v0','Zaxxon-v0']
+
 if options.games is not None:
     allEnvNames = sorted(options.games)
 else:

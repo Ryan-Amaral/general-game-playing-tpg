@@ -19,7 +19,8 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
                'BattleZone-v0','Bowling-v0','Boxing-v0','Centipede-v0']
 
 # create TPG
-trainer = TpgTrainer(actions=range(18), teamPopSize=200, rTeamPopSize=200 maxProgramSize=128, singlePop=False)
+trainer = TpgTrainer(actions=range(18), teamPopSize=100,
+        rTeamPopSize=100 maxProgramSize=128, singlePop=False)
 
 tstart = time.time()
 
