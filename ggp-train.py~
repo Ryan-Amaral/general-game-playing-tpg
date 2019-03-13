@@ -175,7 +175,7 @@ def ggpTrainAllAtOnce():
             pickle.dump(trainer,f)
 
         # every 50 generations evaluate top agents on all games
-        if trainer.populations[None].curGen % options.champEvalGen == 0:
+        if trainer.populations[None].curGen % option.champEvalGen == 0:
             champEval(envNamesSrt, trainer, logFileChampionsName, pool, man,
                         tstart, frames=options.testFrames, eps=options.testEps)
 
