@@ -61,7 +61,7 @@ while trainer.populations[allEnvNames[0]].curGen < 300: # 300 generations at eac
                 + str(bestTeam.uid) + '\n')
 
         # do evolution on each env played
-        trainer.evolve(fitMthd='single', tasks=[envName], elitistTasks=[envName], popName=envName)
+        trainer.evolve(fitMethod='single', tasks=[envName], elitistTasks=[envName], popName=envName)
 
     # update most recent model results
     with open('trainer-8-pops.pkl','wb') as f:
