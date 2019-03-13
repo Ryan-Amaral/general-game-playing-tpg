@@ -12,7 +12,7 @@ import multiprocessing as mp
 import pickle
 import time
 
-pool = mp.Pool(processes=7, initializer=limit_cpu, maxtasksperchild=1)
+pool = mp.Pool(processes=15, initializer=limit_cpu, maxtasksperchild=1)
 man = mp.Manager() # manager for shared memory lists
 
 allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
@@ -20,7 +20,7 @@ allEnvNames = ['Alien-v0','Asteroids-v0','Atlantis-v0','BankHeist-v0',
 
 # create TPG
 trainer = TpgTrainer(actions=range(18), teamPopSize=100,
-        rTeamPopSize=100 maxProgramSize=128, singlePop=False)
+        rTeamPopSize=100, maxProgramSize=128, singlePop=False)
 
 tstart = time.time()
 
@@ -32,7 +32,7 @@ logName = 'sgp-log-8-pops.txt'
 with open(logName, 'a') as f:
     f.write('tpgGen,hoursElapsed,envName,tpgMin,tpgMax,tpgAvg,eliteSize,eliteUid\n')
 
-while trainerpopulations[allEnvNames[0]].curGen < 200: # 200 generations at each game
+while trainer.populations[allEnvNames[0]].curGen < 300: # 300 generations at each game
     print('TPG Gen: ' + str(trainer.populations[envName].curGen))
     for envName in allEnvNames: # train on each env
         print('Playing Game: ' + envName)
@@ -41,7 +41,7 @@ while trainerpopulations[allEnvNames[0]].curGen < 200: # 200 generations at each
 
         # run all agents on env
         pool.map(runAgent,
-            [(agent, envName, scoreList, 1, 18000, None)
+            [(agent, envName, scoreList, 3, 18000, None)
                 for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True,
                         popName=envName)])
 
