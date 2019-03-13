@@ -152,7 +152,9 @@ def ggpTrainAllAtOnce():
                     + str(bestTeam.uid) + '\n')
 
         # do evolution after all envs played
-        trainer.evolve(fitMthd='combine', tasks=allEnvNames, elitistTasks=allEnvNames)
+        trainer.multiEvolve(tasks=[allEnvNames]+[[en for en in allEnvNames]],
+                            weights=[0.5]+[0.5/len(allEnvNames) for _ in allEnvNames],
+                            fitMethod='min', elitistTasks=allEnvNames)
 
         # report generational fitness results
         bestTeam = trainer.getBestTeams(tasks=envNamesSrt)[0]
