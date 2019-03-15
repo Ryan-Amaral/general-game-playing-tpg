@@ -1,6 +1,0 @@
-2018-08-27-11-29 = 30 titles without shrinking active title population. (bad input)
-2018-10-10-14-25 = 15 titles without shrinking active title population. (bad input)
-2018-10-24-14-36 = 15 titles with shrinking active title population. (good input)
-2018-11-08-15-19 = 30 titles with shrinking active title population. (good input)
-2018-11-20-15-25 = 30 titles without shrinking active title population. (good input)
-2018-11-20-15-30 = 15 titles without shrinking active title population. (good input)
