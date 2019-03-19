@@ -202,11 +202,6 @@ def ggpTrainMerge():
                 teamPopSize=options.popSize, rTeamPopSize=options.popSize)
         prevName = curName
 
-    print(trainer.populations.keys())
-    print(1/0)
-
-
-
     # continue on as regular all at once
     while True: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
