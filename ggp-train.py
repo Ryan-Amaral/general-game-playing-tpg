@@ -184,9 +184,84 @@ def ggpTrainAllAtOnce():
 Method for training TPG on each game separately, in separate populations. All of
 the populations will be merged together at once.
 """
-def ggpTrainMerge(envNames, popSize, popSizeMax, lfGSName, lfCName, lfFName,
-        pool, man):
-    pass
+def ggpTrainMerge():
+    # create TPG from existing file of populations
+    trainer = pickle.load(open(options.popsFile, 'rb'))
+
+    envNamesSrt = sorted(list(allEnvNames)) # for reporting envs played
+
+    # merge populations together
+    prevName = envNamesSrt[0]
+    for i in range(len(envNamesSrt)-1):
+        if i+1 < len(envNamesSrt)-1:
+            curName = 'tmp'+str(i)
+        else:
+            curName = None
+
+        trainer.merge2Populations(prevName, envNamesSrt[i+1], curName,
+                teamPopSize=options.popSize, rTeamPopSize=options.popSize)
+        prevTmp = curName
+
+    print(trainer.populations.keys())
+    print(1/0)
+
+
+
+    # continue on as regular all at once
+    while True: # train indefinately
+        print('TPG Gen: ' + str(trainer.populations[None].curGen))
+        for envName in allEnvNames: # train on each env
+            print('Playing Game: ' + envName)
+
+            scoreList = man.list()
+
+            # run all agents on env
+            pool.map(runAgent,
+                [(agent, envName, scoreList, options.trainEps, options.trainFrames, None)
+                    for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
+
+            trainer.applyScores(scoreList)
+
+            # report curEnv results to log
+            scoreStats = trainer.getTaskScores(envName)
+            bestTeam = trainer.getBestTeams(tasks=[envName])[0]
+            with open(logFileGameScoresName, 'a') as f:
+                f.write(str(trainer.populations[None].curGen) + ','
+                    + str((time.time()-tstart)/3600) + ','
+                    + envName + ','
+                    + str(scoreStats['min']) + ','
+                    + str(scoreStats['max']) + ','
+                    + str(scoreStats['average']) +  ','
+                    + str(len(bestTeam.getRootTeamGraph()[0])) + ','
+                    + str(bestTeam.uid) + '\n')
+
+        # do evolution after all envs played
+        trainer.multiEvolve(tasks=[allEnvNames]+[[en] for en in allEnvNames],
+                            weights=[0.5]+[0.5/len(allEnvNames) for _ in allEnvNames],
+                            fitMethod='min', elitistTasks=allEnvNames)
+
+        # report generational fitness results
+        bestTeam = trainer.getBestTeams(tasks=envNamesSrt)[0]
+        with open(logFileFitnessName, 'a') as f:
+            f.write(str(trainer.populations[None].curGen) + ','
+                + str((time.time()-tstart)/3600) + ','
+                + '/'.join(envNamesSrt) + ','
+                + str(trainer.populations[None].scoreStats['min']) + ','
+                + str(trainer.populations[None].scoreStats['max']) + ','
+                + str(trainer.populations[None].scoreStats['average']) +  ','
+                + str(len(bestTeam.getRootTeamGraph()[0])) + ','
+                + str(bestTeam.uid) + ','
+                + str(len(trainer.populations[None].teams)) + ','
+                + str(len(trainer.populations[None].rootTeams)) + '\n')
+
+        # save model after every gen
+        with open(trainerFileName,'wb') as f:
+            pickle.dump(trainer,f)
+
+        # every 50 generations evaluate top agents on all games
+        if trainer.populations[None].curGen % options.champEvalGen == 0:
+            champEval(envNamesSrt, trainer, logFileChampionsName, pool, man,
+                        tstart, frames=options.testFrames, eps=options.testEps)
 
 """
 Method for training TPG on each game separately, in separate populations. The populations
