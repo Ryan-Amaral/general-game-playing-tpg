@@ -200,7 +200,7 @@ def ggpTrainMerge():
 
         trainer.merge2Populations(prevName, envNamesSrt[i+1], curName,
                 teamPopSize=options.popSize, rTeamPopSize=options.popSize)
-        prevTmp = curName
+        prevName = curName
 
     print(trainer.populations.keys())
     print(1/0)
