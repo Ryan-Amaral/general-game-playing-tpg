@@ -166,11 +166,11 @@ def ggpTrainAllAtOnce():
                             fitMethod='min', elitistTasks=allEnvNames)
 
         # report generational fitness results
-        bestTeam = trainer.getBestTeams(tasks=envNamesSrt)[0]
+        bestTeam = trainer.getBestTeams(tasks=fitnessEnvs)[0]
         with open(logFileFitnessName, 'a') as f:
             f.write(str(trainer.populations[None].curGen) + ','
                 + str((time.time()-tstart)/3600) + ','
-                + '/'.join(envNamesSrt) + ','
+                + '/'.join(sorted(list(fitnessEnvs))) + ','
                 + str(trainer.populations[None].scoreStats['min']) + ','
                 + str(trainer.populations[None].scoreStats['max']) + ','
                 + str(trainer.populations[None].scoreStats['average']) +  ','
@@ -252,11 +252,11 @@ def ggpTrainMerge():
                             fitMethod='min', elitistTasks=allEnvNames)
 
         # report generational fitness results
-        bestTeam = trainer.getBestTeams(tasks=envNamesSrt)[0]
+        bestTeam = trainer.getBestTeams(tasks=fitnessEnvs)[0]
         with open(logFileFitnessName, 'a') as f:
             f.write(str(trainer.populations[None].curGen) + ','
                 + str((time.time()-tstart)/3600) + ','
-                + '/'.join(envNamesSrt) + ','
+                + '/'.join(sorted(list(fitnessEnvs))) + ','
                 + str(trainer.populations[None].scoreStats['min']) + ','
                 + str(trainer.populations[None].scoreStats['max']) + ','
                 + str(trainer.populations[None].scoreStats['average']) +  ','
