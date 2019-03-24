@@ -131,34 +131,34 @@ def ggpTrainAllAtOnce():
     while True: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
 
-        envName = random.choice(envNamesSrt)
-        fitnessEnvs.append(envName)
+        fitnessEnvs.append(random.choice(list(set(allEnvNames)-set(fitnessEnvs))))
         if len(fitnessEnvs) > options.fitGamesNum:
             fitnessEnvs.pop(0)
 
-        print('Playing Game: ' + envName)
+        for envName in fitnessEnvs:
+            print('Playing Game: ' + envName)
 
-        scoreList = man.list()
+            scoreList = man.list()
 
-        # run all agents on env
-        pool.map(runAgent,
-            [(agent, envName, scoreList, options.trainEps, options.trainFrames, None)
-                for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
+            # run all agents on env
+            pool.map(runAgent,
+                [(agent, envName, scoreList, options.trainEps, options.trainFrames, None)
+                    for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
 
-        trainer.applyScores(scoreList)
+            trainer.applyScores(scoreList)
 
-        # report curEnv results to log
-        scoreStats = trainer.getTaskScores(envName)
-        bestTeam = trainer.getBestTeams(tasks=[envName])[0]
-        with open(logFileGameScoresName, 'a') as f:
-            f.write(str(trainer.populations[None].curGen) + ','
-                + str((time.time()-tstart)/3600) + ','
-                + envName + ','
-                + str(scoreStats['min']) + ','
-                + str(scoreStats['max']) + ','
-                + str(scoreStats['average']) +  ','
-                + str(len(bestTeam.getRootTeamGraph()[0])) + ','
-                + str(bestTeam.uid) + '\n')
+            # report curEnv results to log
+            scoreStats = trainer.getTaskScores(envName)
+            bestTeam = trainer.getBestTeams(tasks=[envName])[0]
+            with open(logFileGameScoresName, 'a') as f:
+                f.write(str(trainer.populations[None].curGen) + ','
+                    + str((time.time()-tstart)/3600) + ','
+                    + envName + ','
+                    + str(scoreStats['min']) + ','
+                    + str(scoreStats['max']) + ','
+                    + str(scoreStats['average']) +  ','
+                    + str(len(bestTeam.getRootTeamGraph()[0])) + ','
+                    + str(bestTeam.uid) + '\n')
 
         # do evolution after all envs played
         trainer.multiEvolve(tasks=[fitnessEnvs]+[[en] for en in fitnessEnvs],
@@ -217,34 +217,34 @@ def ggpTrainMerge():
     while True: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
 
-        envName = random.choice(envNamesSrt)
-        fitnessEnvs.append(envName)
+        fitnessEnvs.append(random.choice(list(set(allEnvNames)-set(fitnessEnvs))))
         if len(fitnessEnvs) > options.fitGamesNum:
             fitnessEnvs.pop(0)
 
-        print('Playing Game: ' + envName)
+        for envName in fitnessEnvs:
+            print('Playing Game: ' + envName)
 
-        scoreList = man.list()
+            scoreList = man.list()
 
-        # run all agents on env
-        pool.map(runAgent,
-            [(agent, envName, scoreList, options.trainEps, options.trainFrames, None)
-                for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
+            # run all agents on env
+            pool.map(runAgent,
+                [(agent, envName, scoreList, options.trainEps, options.trainFrames, None)
+                    for agent in trainer.getAllAgents(skipTasks=[envName], noRef=True)])
 
-        trainer.applyScores(scoreList)
+            trainer.applyScores(scoreList)
 
-        # report curEnv results to log
-        scoreStats = trainer.getTaskScores(envName)
-        bestTeam = trainer.getBestTeams(tasks=[envName])[0]
-        with open(logFileGameScoresName, 'a') as f:
-            f.write(str(trainer.populations[None].curGen) + ','
-                + str((time.time()-tstart)/3600) + ','
-                + envName + ','
-                + str(scoreStats['min']) + ','
-                + str(scoreStats['max']) + ','
-                + str(scoreStats['average']) +  ','
-                + str(len(bestTeam.getRootTeamGraph()[0])) + ','
-                + str(bestTeam.uid) + '\n')
+            # report curEnv results to log
+            scoreStats = trainer.getTaskScores(envName)
+            bestTeam = trainer.getBestTeams(tasks=[envName])[0]
+            with open(logFileGameScoresName, 'a') as f:
+                f.write(str(trainer.populations[None].curGen) + ','
+                    + str((time.time()-tstart)/3600) + ','
+                    + envName + ','
+                    + str(scoreStats['min']) + ','
+                    + str(scoreStats['max']) + ','
+                    + str(scoreStats['average']) +  ','
+                    + str(len(bestTeam.getRootTeamGraph()[0])) + ','
+                    + str(bestTeam.uid) + '\n')
 
         # do evolution after all envs played
         trainer.multiEvolve(tasks=[fitnessEnvs]+[[en] for en in fitnessEnvs],
