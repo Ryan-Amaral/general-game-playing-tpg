@@ -59,7 +59,7 @@ def runTpg():
 
     print('Playing Game: ' + options.envName)
 
-    while train.populations[None].curGen < options.generations: # train indefinately
+    while trainer.populations[None].curGen < options.generations: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
 
         scoreList = man.list()
