@@ -27,6 +27,7 @@ parser.add_option('--trainEps', type='int', dest='trainEps', default=3)
 parser.add_option('--env', type='string', dest='envName', default='Boxing-v0')
 parser.add_option('-g', type='int', dest='generations', default=300)
 
+(options, args) = parser.parse_args()
 
 timeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
 # write to log with cProfile.run(func(), filtename=logFile)
