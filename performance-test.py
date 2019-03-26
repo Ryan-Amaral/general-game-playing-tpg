@@ -43,6 +43,9 @@ logFileTpg = 'tpg-log-' + timeStamp + '.txt'
 with open(logFileTpg, 'a') as f:
     f.write('tpgGen,hoursElapsed,env,fitMin,fitMax,fitAvg,champSize,champUid,totalTeams,totalRootTeams\n')
 
+pool = mp.Pool(processes=options.workers, initializer=limit_cpu, maxtasksperchild=1)
+man = mp.Manager() # manager for shared memory lists
+
 def runTpg():
 
     tmpEnv = gym.make(options.envName)
@@ -83,3 +86,5 @@ def runTpg():
                 + str(bestTeam.uid) + ','
                 + str(len(trainer.populations[None].teams)) + ','
                 + str(len(trainer.populations[None].rootTeams)) + '\n')
+
+cProfile.run(runTpg, logFileTime)
