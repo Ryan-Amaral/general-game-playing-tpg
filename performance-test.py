@@ -47,6 +47,8 @@ with open(logFileTpg, 'a') as f:
 pool = mp.Pool(processes=options.workers, initializer=limit_cpu, maxtasksperchild=1)
 man = mp.Manager() # manager for shared memory lists
 
+tstart = time.time()
+
 def runTpg():
 
     tmpEnv = gym.make(options.envName)
