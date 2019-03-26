@@ -31,13 +31,15 @@ parser.add_option('-g', type='int', dest='generations', default=300)
 
 timeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
 # write to log with cProfile.run(func(), filtename=logFile)
-logFileTime = 'time-profile-log-' + timeStamp + '.txt'
-with open(logFileTime, 'a') as f:
+logFileTime = 'time-profile-' + timeStamp + '.txt'
+
+logFileParams = 'params-' + timeStamp + '.txt'
+with open(logFileParams, 'a') as f:
     f.write('popSize: ' + str(options.popSize) + '\n')
     f.write('envName: ' + options.envName + '\n')
     f.write('trainEps: ' + str(options.trainEps) + '\n')
     f.write('trainFrames: ' + str(options.trainFrames) + '\n')
-    f.write('Generations: ' + str(options.generations) + '\n\n')
+    f.write('Generations: ' + str(options.generations))
 
 # game score summary of each game in each generation
 logFileTpg = 'tpg-log-' + timeStamp + '.txt'
