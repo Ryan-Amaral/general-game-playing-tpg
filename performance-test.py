@@ -31,7 +31,7 @@ parser.add_option('-g', type='int', dest='generations', default=300)
 timeStamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
 # write to log with cProfile.run(func(), filtename=logFile)
 logFileTime = 'time-profile-log-' + timeStamp + '.txt'
-with open(logFile, 'a') as f:
+with open(logFileTime, 'a') as f:
     f.write('popSize: ' + str(options.popSize) + '\n')
     f.write('envName: ' + options.envName + '\n')
     f.write('trainEps: ' + str(options.trainEps) + '\n')
