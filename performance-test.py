@@ -90,4 +90,4 @@ def runTpg():
                 + str(len(trainer.populations[None].teams)) + ','
                 + str(len(trainer.populations[None].rootTeams)) + '\n')
 
-cProfile.run(runTpg(), logFileTime)
+cProfile.run('runTpg()', logFileTime)
