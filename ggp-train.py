@@ -106,6 +106,14 @@ with open(logFileChampionsName, 'a') as f:
         f.write(',vis' + envName)
     f.write(',visTotal\n')
 
+# every few generations, save the outcomes of the root teams
+logFileOutcomesName = 'ggp-log-outcomes-' + timeStamp + '.txt'
+with open(logFileOutcomesName, 'a') as f:
+    f.write('tpgGen,hoursElapsed,teamId')
+    for envName in allEnvNames:
+        f.write(',score' + envName)
+    f.write('\n')
+
 # population fitness summary each generation
 logFileFitnessName = 'ggp-log-fitness-' + timeStamp + '.txt'
 with open(logFileFitnessName, 'a') as f:
@@ -182,6 +190,17 @@ def ggpTrainAllAtOnce():
         # save model after every gen
         with open(trainerFileName,'wb') as f:
             pickle.dump(trainer,f)
+
+        # every 10 generations evaluate top agents on all games
+        if trainer.populations[None].curGen % 1 == 0:
+            for rt in trainer.populations[None].rootTeams:
+                with open(logFileOutcomesName, 'a') as f:
+                    f.write(str(trainer.populations[None].curGen) + ','
+                        + str((time.time()-tstart)/3600) + ','
+                        + str(rt.uid))
+                    for envName in allEnvNames:
+                        f.write(',' + str(rt.outcomes.get(envName, '-999999')))
+                    f.write('\n')
 
         # every 50 generations evaluate top agents on all games
         if trainer.populations[None].curGen % options.champEvalGen == 0:
