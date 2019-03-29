@@ -192,7 +192,7 @@ def ggpTrainAllAtOnce():
             pickle.dump(trainer,f)
 
         # every 10 generations evaluate top agents on all games
-        if trainer.populations[None].curGen % 1 == 0:
+        if trainer.populations[None].curGen % 10 == 0:
             for rt in trainer.populations[None].rootTeams:
                 with open(logFileOutcomesName, 'a') as f:
                     f.write(str(trainer.populations[None].curGen) + ','
