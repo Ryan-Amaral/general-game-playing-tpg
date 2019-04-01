@@ -3,3 +3,4 @@ envName: Boxing-v0
 trainEps: 3
 trainFrames: 18000
 Generations: 300
+With Numba
