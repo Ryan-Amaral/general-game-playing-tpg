@@ -26,7 +26,7 @@ parser = OptionParser()
 # number of games to play
 parser.add_option('-n', '--ngames', type='int', dest='numGames', default=16)
 # number of previous titles to measure fitness on
-parser.add_option('-f', '--fitGamesNum', type='int', dest='fitGamesNum', default=2)
+parser.add_option('-f', '--fitGamesNum', type='int', dest='fitGamesNum', default=-1)
 # specify any games
 parser.add_option('--games', type='string', action='callback', callback=separgs, dest='games')
 # choose games randomly
@@ -138,10 +138,13 @@ def ggpTrainAllAtOnce():
 
     while True: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
-
-        fitnessEnvs.append(random.choice(list(set(allEnvNames)-set(fitnessEnvs))))
-        if len(fitnessEnvs) > options.fitGamesNum:
-            fitnessEnvs.pop(0)
+        
+        if options.fitGamesNum < options.numGames and options.fitGamesNum > 0:
+            fitnessEnvs.append(random.choice(list(set(allEnvNames)-set(fitnessEnvs))))
+            if len(fitnessEnvs) > options.fitGamesNum:
+                fitnessEnvs.pop(0)
+        else:
+            fitnessEnvs = list(allEnvNames)
 
         for envName in fitnessEnvs:
             print('Playing Game: ' + envName)
@@ -191,7 +194,7 @@ def ggpTrainAllAtOnce():
         with open(trainerFileName,'wb') as f:
             pickle.dump(trainer,f)
 
-        # every 10 generations evaluate top agents on all games
+        # every 10 generations save all agent outcomes
         if trainer.populations[None].curGen % 10 == 0:
             for rt in trainer.populations[None].rootTeams:
                 with open(logFileOutcomesName, 'a') as f:
@@ -236,9 +239,12 @@ def ggpTrainMerge():
     while True: # train indefinately
         print('TPG Gen: ' + str(trainer.populations[None].curGen))
 
-        fitnessEnvs.append(random.choice(list(set(allEnvNames)-set(fitnessEnvs))))
-        if len(fitnessEnvs) > options.fitGamesNum:
-            fitnessEnvs.pop(0)
+        if options.fitGamesNum < options.numGames and options.fitGamesNum > 0:
+            fitnessEnvs.append(random.choice(list(set(allEnvNames)-set(fitnessEnvs))))
+            if len(fitnessEnvs) > options.fitGamesNum:
+                fitnessEnvs.pop(0)
+            else:
+                fitnessEnvs = list(allEnvNames)
 
         for envName in fitnessEnvs:
             print('Playing Game: ' + envName)
